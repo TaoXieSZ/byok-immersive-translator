@@ -1,0 +1,11 @@
+{
+  "name": "byok-immersive-translator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "test": "node --test",
+    "verify": "npm run check && npm test"
+  }
+}

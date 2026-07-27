@@ -1,0 +1,68 @@
+# 自带 Token 沉浸翻译
+
+一个不依赖沉浸式翻译官方插件的开源浏览器扩展。它使用你自己的 DeepSeek 或其他 OpenAI-compatible API Token，在网页原文下方逐段显示译文。
+
+## 当前能力
+
+- DeepSeek 预设与自定义 OpenAI-compatible 服务
+- 多套本地 Provider 配置、切换、编辑和删除
+- 逐段双语翻译，保留原文和页面原有样式
+- 翻译进度、停止、失败重试、恢复原文
+- 自动翻译页面后续追加的正文内容
+- API Token 只保存在浏览器本机，不进入同步存储
+- 远程 API 强制 HTTPS；仅 localhost 和 127.0.0.1 可使用 HTTP
+
+首版聚焦普通网页文章。PDF、字幕、图片 OCR、输入框内容和跨设备配置同步不在当前范围内。
+
+## 安装
+
+1. 在 Chrome 打开 `chrome://extensions/`。
+2. 开启“开发者模式”。
+3. 选择“加载已解压的扩展程序”。
+4. 选择本仓库的 [extension](./extension/) 目录。
+
+无需构建，也没有运行时依赖。
+
+## 配置 DeepSeek
+
+1. 打开扩展的“设置”。
+2. 选择“新建 DeepSeek”。
+3. 填入 API Token；默认 Base URL 为 `https://api.deepseek.com/v1`。
+4. 保留或修改模型名和目标语言。
+5. 先点“测试连接”，成功后点“保存并使用”。
+
+其他服务需要提供 OpenAI-compatible 的 `POST /chat/completions` 接口。Base URL 填到服务的 API 根路径，例如 `https://example.com/v1`。
+
+## 使用
+
+打开一篇网页文章，点击扩展图标，然后选择“开始翻译”。Popup 会显示完成、处理中和失败数量。你可以随时：
+
+- 停止：中止当前请求，保留已经得到的译文；
+- 重试失败：只重新提交失败或被停止的块；
+- 恢复原文：只删除扩展插入的译文，不改动网页原节点。
+
+## Token 与隐私边界
+
+- Token 存储在 `chrome.storage.local`，不会写入 `chrome.storage.sync`。
+- Content Script 不会收到 Token、Base URL 或完整 Provider 配置。
+- Service Worker 只向当前选中的 Provider origin 发送所选正文块，不发送完整 DOM、Cookie、表单值或页面脚本。
+- API origin 权限按配置精确申请；删除或改址后会清理不再使用的权限。
+- 拥有本机浏览器调试权限、操作系统账户权限或扩展目录写权限的人，仍可能读取本地 Token。建议使用独立、可撤销、有限额的 Token。
+
+完整说明见 [PRIVACY.md](./PRIVACY.md)。
+
+## 本地验证
+
+需要 Node.js 20 或更高版本：
+
+```bash
+npm run verify
+```
+
+该命令执行语法检查和 Node 内置测试，不会安装第三方包。
+
+浏览器验收记录与真实网站截图见 [tests/e2e/byok-translator/README.md](./tests/e2e/byok-translator/README.md)。
+
+## 开源协议
+
+本项目使用 MIT License，见 [LICENSE](./LICENSE)。
