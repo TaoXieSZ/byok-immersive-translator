@@ -2,8 +2,14 @@
   "manifest_version": 3,
   "name": "自带 Token 沉浸翻译",
   "description": "使用你自己的 DeepSeek 或 OpenAI-compatible API，在网页原文下方显示译文。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimum_chrome_version": "102",
+  "icons": {
+    "16": "assets/brand/icon-16.png",
+    "32": "assets/brand/icon-32.png",
+    "48": "assets/brand/icon-48.png",
+    "128": "assets/brand/icon-128.png"
+  },
   "permissions": [
     "activeTab",
     "scripting",
@@ -19,6 +25,12 @@
     "type": "module"
   },
   "action": {
+    "default_icon": {
+      "16": "assets/brand/icon-16.png",
+      "32": "assets/brand/icon-32.png",
+      "48": "assets/brand/icon-48.png",
+      "128": "assets/brand/icon-128.png"
+    },
     "default_popup": "src/popup/popup.html",
     "default_title": "翻译当前页面"
   },

@@ -16,6 +16,56 @@
   animation: byok-translation-arrive 180ms ease-out both !important;
 }
 
+.byok-translator__translation[data-state="queued"],
+.byok-translator__translation[data-state="translating"],
+.byok-translator__translation[data-state="failed"],
+.byok-translator__translation[data-state="cancelled"] {
+  display: flex !important;
+  min-height: 1.5em !important;
+  align-items: center !important;
+  gap: 0.48em !important;
+  color: color-mix(in srgb, currentColor 48%, #7d858b) !important;
+  font-size: 0.78em !important;
+  line-height: 1.5 !important;
+}
+
+.byok-translator__translation[data-state="queued"]::before,
+.byok-translator__translation[data-state="translating"]::before,
+.byok-translator__translation[data-state="failed"]::before,
+.byok-translator__translation[data-state="cancelled"]::before {
+  box-sizing: border-box !important;
+  width: 0.82em !important;
+  height: 0.82em !important;
+  flex: 0 0 auto !important;
+  border: 1.5px solid color-mix(in srgb, currentColor 22%, transparent) !important;
+  border-radius: 50% !important;
+  content: "" !important;
+}
+
+.byok-translator__translation[data-state="queued"]::before {
+  background: color-mix(in srgb, #d95b40 42%, transparent) !important;
+  animation: byok-translation-breathe 1.4s ease-in-out infinite !important;
+}
+
+.byok-translator__translation[data-state="translating"]::before {
+  border-top-color: #d95b40 !important;
+  animation: byok-translation-spin 720ms linear infinite !important;
+}
+
+.byok-translator__translation[data-state="failed"] {
+  color: #9d3424 !important;
+}
+
+.byok-translator__translation[data-state="failed"]::before {
+  border-color: #d95b40 !important;
+  background: linear-gradient(#d95b40, #d95b40) center / 1px 55% no-repeat !important;
+}
+
+.byok-translator__translation[data-state="cancelled"]::before {
+  border-radius: 2px !important;
+  background: color-mix(in srgb, currentColor 34%, transparent) !important;
+}
+
 @keyframes byok-translation-arrive {
   from {
     opacity: 0;
@@ -24,6 +74,24 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes byok-translation-breathe {
+  0%, 100% { opacity: 0.38; transform: scale(0.78); }
+  50% { opacity: 0.9; transform: scale(1); }
+}
+
+@keyframes byok-translation-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .byok-translator__translation {
+    animation: none !important;
+  }
+  .byok-translator__translation::before {
+    animation: none !important;
   }
 }
 

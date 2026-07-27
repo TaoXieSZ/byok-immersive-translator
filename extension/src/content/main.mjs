@@ -1,13 +1,19 @@
-import { createBatches } from "../shared/batching.mjs";
-import { extractBlocks } from "./extraction.mjs";
+import { createProgressiveBatches } from "../shared/batching.mjs";
+import {
+  extractBlocks,
+  prioritizeBlocksForViewport
+} from "./extraction.mjs";
 import { MessageType } from "../shared/messages.mjs";
 import {
   BlockStatus,
   summarizeBlocks
 } from "../shared/session-state.mjs";
+import { createFloatingController } from "./floating-controller.mjs";
 
 let currentSession = null;
 let mutationTimer = null;
+let floatingController = null;
+const BATCH_CONCURRENCY = 3;
 
 function createSession(targetLanguage) {
   return {
@@ -34,6 +40,10 @@ function getStatus() {
   );
 }
 
+function notifyStatus() {
+  floatingController?.render(getStatus());
+}
+
 function addExtractedBlocks(session, root) {
   const { blocks, nextIndex } = extractBlocks(root, {
     sessionId: session.id,
@@ -41,16 +51,19 @@ function addExtractedBlocks(session, root) {
   });
   session.nextIndex = nextIndex;
   for (const block of blocks) {
-    session.blocks.set(block.id, {
+    const queuedBlock = {
       ...block,
       status: BlockStatus.QUEUED,
       retries: 0
-    });
+    };
+    session.blocks.set(block.id, queuedBlock);
+    renderBlockState(queuedBlock, BlockStatus.QUEUED);
   }
+  notifyStatus();
   return blocks.length;
 }
 
-function renderTranslation(block, translation) {
+function getTranslationElement(block) {
   const selector = `[data-byok-translator][data-byok-for="${CSS.escape(block.id)}"]`;
   let translatedElement = document.querySelector(selector);
   if (!translatedElement) {
@@ -65,20 +78,40 @@ function renderTranslation(block, translation) {
       block.element.insertAdjacentElement("afterend", translatedElement);
     }
   }
+  return translatedElement;
+}
+
+function renderBlockState(block, status) {
+  const translatedElement = getTranslationElement(block);
+  translatedElement.dataset.state = status;
+  const labels = {
+    [BlockStatus.QUEUED]: "等待翻译",
+    [BlockStatus.TRANSLATING]: "正在翻译",
+    [BlockStatus.FAILED]: "翻译失败，可在控制器中重试",
+    [BlockStatus.CANCELLED]: "翻译已暂停"
+  };
+  translatedElement.textContent = labels[status] ?? "";
+}
+
+function renderTranslation(block, translation) {
+  const translatedElement = getTranslationElement(block);
+  translatedElement.dataset.state = BlockStatus.TRANSLATED;
   translatedElement.textContent = translation;
 }
 
-function markBatch(batch, status) {
+function markBatch(session, batch, status) {
   for (const item of batch) {
-    const block = currentSession?.blocks.get(item.id);
+    const block = session.blocks.get(item.id);
     if (block) {
       block.status = status;
+      renderBlockState(block, status);
     }
   }
+  notifyStatus();
 }
 
 async function translateBatch(session, batch) {
-  markBatch(batch, BlockStatus.TRANSLATING);
+  markBatch(session, batch, BlockStatus.TRANSLATING);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (session.stopped || currentSession?.id !== session.id) {
@@ -103,6 +136,7 @@ async function translateBatch(session, batch) {
         block.status = BlockStatus.TRANSLATED;
       }
       session.lastError = null;
+      notifyStatus();
       return;
     }
 
@@ -116,7 +150,24 @@ async function translateBatch(session, batch) {
     }
   }
 
-  markBatch(batch, BlockStatus.FAILED);
+  markBatch(session, batch, BlockStatus.FAILED);
+}
+
+async function translateBatches(session, batches) {
+  let nextBatchIndex = 0;
+  const workerCount = Math.min(BATCH_CONCURRENCY, batches.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (
+      nextBatchIndex < batches.length &&
+      !session.stopped &&
+      currentSession?.id === session.id
+    ) {
+      const batch = batches[nextBatchIndex];
+      nextBatchIndex += 1;
+      await translateBatch(session, batch);
+    }
+  });
+  await Promise.all(workers);
 }
 
 async function processQueued(session) {
@@ -126,16 +177,18 @@ async function processQueued(session) {
 
   session.processing = true;
   session.status = "translating";
+  notifyStatus();
   try {
-    const queued = [...session.blocks.values()].filter(
-      (block) => block.status === BlockStatus.QUEUED
-    );
-    const batches = createBatches(queued);
-    for (const batch of batches) {
-      if (session.stopped || currentSession?.id !== session.id) {
+    while (!session.stopped && currentSession?.id === session.id) {
+      const queued = [...session.blocks.values()].filter(
+        (block) => block.status === BlockStatus.QUEUED
+      );
+      if (queued.length === 0) {
         break;
       }
-      await translateBatch(session, batch);
+      const prioritized = prioritizeBlocksForViewport(queued);
+      const batches = createProgressiveBatches(prioritized);
+      await translateBatches(session, batches);
     }
   } finally {
     session.processing = false;
@@ -145,6 +198,7 @@ async function processQueued(session) {
         ? "completed-with-errors"
         : "completed";
     }
+    notifyStatus();
   }
 }
 
@@ -237,12 +291,14 @@ function stopTranslation() {
       block.status === BlockStatus.TRANSLATING
     ) {
       block.status = BlockStatus.CANCELLED;
+      renderBlockState(block, BlockStatus.CANCELLED);
     }
   }
   void chrome.runtime.sendMessage({
     type: MessageType.CANCEL_SESSION,
     sessionId: currentSession.id
   });
+  notifyStatus();
   return { ok: true, status: getStatus() };
 }
 
@@ -258,6 +314,7 @@ function retryFailed() {
     ) {
       block.status = BlockStatus.QUEUED;
       block.retries = 0;
+      renderBlockState(block, BlockStatus.QUEUED);
       retryCount += 1;
     }
   }
@@ -268,6 +325,7 @@ function retryFailed() {
     observeDynamicContent(currentSession);
     void processQueued(currentSession);
   }
+  notifyStatus();
   return { ok: true, status: getStatus() };
 }
 
@@ -289,6 +347,7 @@ function restorePage() {
     .querySelectorAll("[data-byok-block-id]")
     .forEach((element) => element.removeAttribute("data-byok-block-id"));
   currentSession = null;
+  notifyStatus();
   return { ok: true, status: getStatus() };
 }
 
@@ -314,6 +373,17 @@ export function installContentController() {
     return;
   }
   globalThis.__BYOK_TRANSLATOR_CONTROLLER__ = true;
+  floatingController = createFloatingController({
+    start: startTranslation,
+    stop: () => Promise.resolve(stopTranslation()),
+    retry: () => Promise.resolve(retryFailed()),
+    restore: () => Promise.resolve(restorePage()),
+    settings: async () => {
+      await chrome.runtime.openOptionsPage();
+      return { ok: true };
+    }
+  });
+  notifyStatus();
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const response = handlePageMessage(message);
     if (!response) {

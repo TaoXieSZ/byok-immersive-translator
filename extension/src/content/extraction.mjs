@@ -38,6 +38,67 @@ export function isCandidateTag(tagName) {
   );
 }
 
+function getViewportPriority(block, viewportWidth, viewportHeight, index) {
+  const rect = block?.element?.getBoundingClientRect?.();
+  if (
+    !rect ||
+    !Number.isFinite(rect.top) ||
+    !Number.isFinite(rect.bottom) ||
+    !Number.isFinite(rect.left) ||
+    !Number.isFinite(rect.right)
+  ) {
+    return [3, 3, 0, 0, index];
+  }
+
+  const verticalTier =
+    rect.bottom >= 0 && rect.top <= viewportHeight
+      ? 0
+      : rect.top > viewportHeight
+        ? 1
+        : 2;
+  const contentTier = block.element.closest?.("article,[role='main']")
+    ? 0
+    : block.element.closest?.("main")
+      ? 1
+      : 2;
+  const horizontalCenter = (rect.left + rect.right) / 2;
+  const horizontalDistance = Math.abs(horizontalCenter - viewportWidth / 2);
+
+  return [verticalTier, contentTier, horizontalDistance, rect.top, index];
+}
+
+export function prioritizeBlocksForViewport(
+  blocks,
+  {
+    viewportWidth = globalThis.innerWidth ?? 0,
+    viewportHeight = globalThis.innerHeight ?? 0
+  } = {}
+) {
+  if (!Array.isArray(blocks)) {
+    return [];
+  }
+  return blocks
+    .map((block, index) => ({
+      block,
+      priority: getViewportPriority(
+        block,
+        viewportWidth,
+        viewportHeight,
+        index
+      )
+    }))
+    .sort((left, right) => {
+      for (let index = 0; index < left.priority.length; index += 1) {
+        const difference = left.priority[index] - right.priority[index];
+        if (difference !== 0) {
+          return difference;
+        }
+      }
+      return 0;
+    })
+    .map(({ block }) => block);
+}
+
 function isVisible(element) {
   const style = element.ownerDocument.defaultView.getComputedStyle(element);
   return (

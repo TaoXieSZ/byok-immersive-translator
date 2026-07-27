@@ -20,6 +20,7 @@ const elements = {
 let activeTab = null;
 let providerConfigured = false;
 let pollTimer = null;
+let pageStatus = "idle";
 
 function isSupportedUrl(url) {
   return /^https?:\/\//i.test(url ?? "");
@@ -31,11 +32,12 @@ function setFeedback(message = "", tone = "") {
 }
 
 function renderStatus(status = {}) {
+  pageStatus = status.status ?? "idle";
   const total = status.total ?? 0;
   const translated = status.translated ?? 0;
   const active = (status.queued ?? 0) + (status.translating ?? 0);
   const failed = status.failed ?? 0;
-  const completed = translated + failed + (status.cancelled ?? 0);
+  const completed = translated + failed;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   const labels = {
     idle: "准备翻译当前页面",
@@ -55,7 +57,10 @@ function renderStatus(status = {}) {
   elements.stop.disabled = status.status !== "translating";
   elements.retry.disabled = failed + (status.cancelled ?? 0) === 0;
   elements.restore.disabled = total === 0;
-  elements.start.disabled = !providerConfigured || !isSupportedUrl(activeTab?.url);
+  elements.start.disabled =
+    pageStatus === "translating" ||
+    !providerConfigured ||
+    !isSupportedUrl(activeTab?.url);
 
   if (status.lastError?.message) {
     setFeedback(status.lastError.message, "error");
@@ -104,6 +109,9 @@ async function initialize() {
   } else if (!providerConfigured) {
     setFeedback("先打开设置，添加你的 DeepSeek 或其他 API Token。");
   }
+  if (isSupportedUrl(activeTab?.url)) {
+    await ensureContentController();
+  }
   await refreshStatus();
   pollTimer = setInterval(refreshStatus, 600);
 }
@@ -124,7 +132,9 @@ elements.start.addEventListener("click", async () => {
     setFeedback(error.message, "error");
   } finally {
     elements.start.disabled =
-      !providerConfigured || !isSupportedUrl(activeTab?.url);
+      pageStatus === "translating" ||
+      !providerConfigured ||
+      !isSupportedUrl(activeTab?.url);
   }
 });
 
