@@ -1,17 +1,47 @@
+export const ControllerStatus = Object.freeze({
+  IDLE: "idle",
+  STARTING: "starting",
+  TRANSLATING: "translating",
+  STOPPED: "stopped",
+  COMPLETED: "completed",
+  COMPLETED_WITH_ERRORS: "completed-with-errors"
+});
+
 const STATUS_LABELS = Object.freeze({
   idle: "准备翻译",
+  starting: "正在启动",
   translating: "正在翻译",
   completed: "翻译完成",
   "completed-with-errors": "部分失败",
   stopped: "已暂停"
 });
 
-const MARK_SVG = `
-  <svg viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M8 8.5h23a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5H20l-8.5 7v-7H8a5 5 0 0 1-5-5v-13a5 5 0 0 1 5-5Z" fill="currentColor"/>
-    <path d="M28.5 19.5h11a5.5 5.5 0 0 1 5.5 5.5v8a5.5 5.5 0 0 1-5.5 5.5h-2V44l-7-5.5h-5a5.5 5.5 0 0 1-5.5-5.5v-2" fill="#d95b40"/>
-    <path d="M12 15h15M19.5 12v3c0 7-3.8 11.2-9 13M14 20c2.2 3.2 5.3 5.8 9.5 7.5" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="m29 33 3.8-9 3.8 9M30.4 30h4.8" fill="none" stroke="#fffdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+export function getLauncherIntent(status) {
+  if (status === ControllerStatus.IDLE) {
+    return "start";
+  }
+  if (status === ControllerStatus.STARTING) {
+    return "ignore";
+  }
+  return "restore";
+}
+
+const BRAND_MARK_SVG = `
+  <svg viewBox="0 0 48 48" data-icon="brand-b2" aria-hidden="true">
+    <path d="M5 9h15a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3h-8l-5 4v-4H5a3 3 0 0 1-3-3V12a3 3 0 0 1 3-3Z" fill="#fffdf8"/>
+    <path d="M28 7h15a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3h-2v4l-5-4h-8a3 3 0 0 1-3-3V10a3 3 0 0 1 3-3Z" fill="#d95b40"/>
+    <path d="M8 16h8M8 21h11M8 26h7" fill="none" stroke="#172b3d" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M31 14h8M29 19h11M32 24h7" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M18 32h13l-3-3m3 3-3 3" fill="none" stroke="#f5efe4" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
+const FLOATING_ACTION_SVG = `
+  <svg viewBox="0 0 48 48" data-icon="floating-a3" aria-hidden="true">
+    <path d="M6 6h36a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H28l-8 7v-7H6a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z" fill="#172b3d"/>
+    <path d="M24 6h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H28l-4 3.5Z" fill="#d95b40"/>
+    <path d="M8 15h12M14 12v3c0 7-3.2 11-8 14M9 20c2 3 4.5 5.2 8 7" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="m29 29 4-13 5 13M31 25h5" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 `;
 
@@ -65,7 +95,7 @@ const TEMPLATE = `
       height: 50px;
       place-items: center;
       border-radius: 15px 15px 21px 15px;
-      background: var(--byok-ink);
+      background: var(--byok-paper);
       color: var(--byok-ink);
     }
     .launcher svg { width: 34px; height: 34px; overflow: visible; }
@@ -158,6 +188,30 @@ const TEMPLATE = `
     .track > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--byok-accent); transition: width 220ms ease; }
     .substatus { margin: 0; color: var(--byok-muted); font-size: 11px; }
     .feedback { min-height: 18px; margin: -3px 16px 9px; color: #9d3424; font-size: 10px; }
+    .scope {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin: 0 12px 10px;
+      padding: 3px;
+      border: 1px solid var(--byok-line);
+      border-radius: 11px;
+      background: rgba(255, 253, 248, .58);
+    }
+    .scope__option {
+      min-height: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--byok-muted);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .scope__option[aria-pressed="true"] {
+      background: var(--byok-surface);
+      color: var(--byok-ink);
+      box-shadow: 0 1px 4px rgba(23, 43, 61, .12);
+    }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 12px; }
     .action {
       min-height: 38px;
@@ -180,7 +234,7 @@ const TEMPLATE = `
   </style>
   <section class="panel" aria-label="网页翻译控制器">
     <header class="panel__header">
-      <span class="panel__mark">${MARK_SVG}</span>
+      <span class="panel__mark">${BRAND_MARK_SVG}</span>
       <div>
         <p class="eyebrow">BYOK TRANSLATOR</p>
         <h2 class="title">双语阅读</h2>
@@ -196,6 +250,10 @@ const TEMPLATE = `
       <p class="substatus" data-field="detail">点击开始后，当前正文会优先出现译文。</p>
     </div>
     <div class="feedback" data-field="feedback" role="status" aria-live="polite"></div>
+    <div class="scope" role="group" aria-label="翻译范围">
+      <button class="scope__option" data-action="scope-main" type="button" aria-pressed="true">主要内容</button>
+      <button class="scope__option" data-action="scope-page" type="button" aria-pressed="false">整个页面</button>
+    </div>
     <div class="actions">
       <button class="action action--primary" data-action="start" type="button">开始翻译</button>
       <button class="action" data-action="stop" type="button">暂停</button>
@@ -205,7 +263,7 @@ const TEMPLATE = `
     </div>
   </section>
   <button class="launcher" data-action="toggle" type="button" aria-label="打开翻译控制器" aria-expanded="false">
-    <span class="launcher__inner">${MARK_SVG}</span>
+    <span class="launcher__inner">${FLOATING_ACTION_SVG}</span>
     <span class="launcher__count" data-field="badge"></span>
   </button>
 `;
@@ -230,7 +288,6 @@ export function createFloatingController(actions) {
     ])
   );
   let lastStatus = "idle";
-  let openedForCurrentRun = false;
 
   function setOpen(open) {
     host.dataset.open = String(open);
@@ -251,13 +308,41 @@ export function createFloatingController(actions) {
     }
   }
 
-  buttons.toggle.addEventListener("click", () => {
-    setOpen(host.dataset.open !== "true");
+  buttons.toggle.addEventListener("click", async () => {
+    const intent = getLauncherIntent(lastStatus);
+    if (intent === "ignore") {
+      return;
+    }
+    if (intent === "restore") {
+      setOpen(false);
+      const response = await run("restore");
+      if (response?.ok) {
+        lastStatus = ControllerStatus.IDLE;
+      } else {
+        setOpen(true);
+      }
+      return;
+    }
+    lastStatus = ControllerStatus.STARTING;
+    buttons.toggle.setAttribute("aria-busy", "true");
+    setOpen(false);
+    const response = await run("start");
+    buttons.toggle.removeAttribute("aria-busy");
+    if (!response?.ok) {
+      lastStatus = ControllerStatus.IDLE;
+      setOpen(true);
+    }
   });
   buttons.collapse.addEventListener("click", () => setOpen(false));
   for (const action of ["start", "stop", "retry", "restore", "settings"]) {
     buttons[action].addEventListener("click", () => void run(action));
   }
+  buttons["scope-main"].addEventListener("click", () =>
+    void run("setMainContentScope")
+  );
+  buttons["scope-page"].addEventListener("click", () =>
+    void run("setWholePageScope")
+  );
 
   return {
     render(status = {}) {
@@ -273,13 +358,19 @@ export function createFloatingController(actions) {
       fields.fraction.textContent = `${completed} / ${total}`;
       fields.bar.style.width = `${percent}%`;
       fields.detail.textContent =
-        status.status === "translating"
+        status.status === "starting"
+          ? "正在检查配置并准备当前页面…"
+          : status.status === "translating"
           ? `${translated} 段已完成 · ${active} 段处理中`
           : status.status === "completed"
             ? `已完成 ${translated} 段译文`
             : status.status === "stopped"
               ? `${translated} 段已完成 · ${cancelled} 段已暂停`
             : "当前正文会优先出现译文。";
+      if (status.scopeFallback) {
+        fields.detail.textContent =
+          "未识别到明确正文，已按当前视口优先处理可翻译内容。";
+      }
       fields.badge.textContent = total > 0 ? `${completed}/${total}` : "";
       buttons.toggle.style.setProperty(
         "--byok-progress",
@@ -288,21 +379,28 @@ export function createFloatingController(actions) {
       buttons.stop.disabled = status.status !== "translating";
       buttons.retry.disabled = failed + cancelled === 0;
       buttons.restore.disabled = total === 0;
-      buttons.start.disabled = status.status === "translating";
-
-      if (
-        status.status === "translating" &&
-        lastStatus !== "translating" &&
-        !openedForCurrentRun
-      ) {
-        setOpen(true);
-        openedForCurrentRun = true;
-      }
-      if (status.status === "idle") {
-        openedForCurrentRun = false;
-      }
+      buttons.start.disabled = ["starting", "translating"].includes(
+        status.status
+      );
+      buttons.toggle.setAttribute(
+        "aria-label",
+        status.status === "idle"
+          ? "开始翻译"
+          : status.status === "starting"
+            ? "正在启动翻译"
+            : "移除翻译"
+      );
+      buttons["scope-main"].setAttribute(
+        "aria-pressed",
+        String(status.scope !== "full-page")
+      );
+      buttons["scope-page"].setAttribute(
+        "aria-pressed",
+        String(status.scope === "full-page")
+      );
       if (status.lastError?.message) {
         fields.feedback.textContent = status.lastError.message;
+        setOpen(true);
       }
       lastStatus = status.status ?? "idle";
     },

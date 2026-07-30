@@ -17,8 +17,7 @@
   ],
   "optional_host_permissions": [
     "https://*/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://*/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.mjs",
@@ -33,6 +32,16 @@
     },
     "default_popup": "src/popup/popup.html",
     "default_title": "翻译当前页面"
+  },
+  "commands": {
+    "toggle-translation": {
+      "suggested_key": "Alt+A",
+      "description": "开始翻译，或在原文与译文之间切换"
+    },
+    "translate-whole-page": {
+      "suggested_key": "Alt+W",
+      "description": "翻译整个页面"
+    }
   },
   "options_page": "src/options/options.html",
   "web_accessible_resources": [

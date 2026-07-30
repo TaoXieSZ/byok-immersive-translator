@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#172b3d" flood-opacity=".12"/>
+    </filter>
+    <style>
+      .title { font: 700 42px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #172b3d; }
+      .subtitle { font: 400 20px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #6f7880; }
+      .family { font: 800 18px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; letter-spacing: .12em; fill: #d95b40; }
+      .label { font: 700 24px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #172b3d; }
+      .note { font: 400 16px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #6f7880; }
+      .glyph { font-family: "PingFang SC", "Noto Sans CJK SC", sans-serif; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    </style>
+
+    <symbol id="b1" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#172b3d"/>
+      <path d="M30 55c30-10 56-5 80 14v112c-24-19-50-24-80-14Z" fill="#fffdf8"/>
+      <path d="M190 55c-30-10-56-5-80 14v112c24-19 50-24 80-14Z" fill="#d95b40"/>
+      <path d="M110 69v112" stroke="#f5efe4" stroke-width="8" stroke-linecap="round"/>
+      <path d="M52 88h32M47 111h42M51 134h34" stroke="#172b3d" stroke-width="9" stroke-linecap="round"/>
+      <path d="M136 90h28M132 114h36M137 138h27" stroke="#fffdf8" stroke-width="9" stroke-linecap="round"/>
+      <path d="M93 53 110 69l17-16" fill="none" stroke="#f5efe4" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="b2" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#172b3d"/>
+      <path d="M27 49h71c8 0 14 6 14 14v104c0 8-6 14-14 14H57l-22 17v-17h-8c-8 0-14-6-14-14V63c0-8 6-14 14-14Z" fill="#fffdf8"/>
+      <path d="M122 39h71c8 0 14 6 14 14v104c0 8-6 14-14 14h-8v17l-22-17h-41c-8 0-14-6-14-14V53c0-8 6-14 14-14Z" fill="#d95b40"/>
+      <path d="M36 78h42M36 102h52M36 126h37" stroke="#172b3d" stroke-width="9" stroke-linecap="round"/>
+      <path d="M137 68h42M127 92h52M142 116h37" stroke="#fffdf8" stroke-width="9" stroke-linecap="round"/>
+      <path d="M85 151h53l-12-12m12 12-12 12" fill="none" stroke="#f5efe4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="b3" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#172b3d"/>
+      <path d="M28 55c31-10 58-3 82 22v105c-24-22-51-29-82-19Z" fill="#fffdf8"/>
+      <path d="M192 55c-31-10-58-3-82 22v105c24-22 51-29 82-19Z" fill="#d95b40"/>
+      <path d="M110 77v105" stroke="#f5efe4" stroke-width="10" stroke-linecap="round"/>
+      <path d="m91 61 19 16 19-16" fill="none" stroke="#f5efe4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="a1" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#f5efe4"/>
+      <path d="M40 43h104c19 0 34 15 34 34v62c0 19-15 34-34 34H94l-35 27v-27H40c-19 0-34-15-34-34V77c0-19 15-34 34-34Z" fill="#172b3d"/>
+      <path d="M136 111h49c16 0 29 13 29 29v38c0 16-13 29-29 29h-13v18l-25-18h-11c-16 0-29-13-29-29v-38c0-16 13-29 29-29Z" fill="#d95b40"/>
+      <text x="82" y="105" class="glyph" font-size="66" fill="#fffdf8">文</text>
+      <text x="160" y="164" class="glyph" font-size="48" fill="#fffdf8">A</text>
+    </symbol>
+
+    <symbol id="a2" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#f5efe4"/>
+      <path d="M24 47h90c17 0 31 14 31 31v54c0 17-14 31-31 31H73l-28 23v-23H24c-17 0-31-14-31-31V78c0-17 14-31 31-31Z" fill="#172b3d"/>
+      <path d="M106 88h90c17 0 31 14 31 31v54c0 17-14 31-31 31h-21v23l-28-23h-41c-17 0-31-14-31-31v-54c0-17 14-31 31-31Z" fill="#d95b40"/>
+      <path d="M35 86h68M69 70v16c0 29-15 49-41 60M43 106c9 14 22 25 39 33" fill="none" stroke="#fffdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="m123 169 18-49 19 49M130 151h24" fill="none" stroke="#fffdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="a3" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="52" fill="#f5efe4"/>
+      <path d="M31 39h158c18 0 33 15 33 33v82c0 18-15 33-33 33h-58l-34 28v-28H31c-18 0-33-15-33-33V72c0-18 15-33 33-33Z" fill="#172b3d"/>
+      <path d="M110 39h79c18 0 33 15 33 33v82c0 18-15 33-33 33h-58l-21 17Z" fill="#d95b40"/>
+      <path d="M31 91h57M60 73v18c0 31-14 52-39 64M35 113c9 13 20 23 36 31" fill="none" stroke="#fffdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="m136 153 18-50 19 50M142 136h25" fill="none" stroke="#fffdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+
+  <rect width="1600" height="1160" fill="#f5efe4"/>
+  <text x="92" y="76" class="title">B + A · 第二轮图标收敛</text>
+  <text x="92" y="114" class="subtitle">每个方向保留三种轮廓；右侧同时展示 48px 浅色与深色工具栏效果</text>
+  <text x="92" y="166" class="family">B FAMILY · 双页桥</text>
+
+  <!-- top row -->
+  <g transform="translate(80 194)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#b1" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">B1 · 阅读书桥</text>
+    <text x="38" y="310" class="note">场景最明确，保留正文线条</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#b1" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#b1" x="319" y="153" width="48" height="48"/>
+  </g>
+  <g transform="translate(573 194)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#b2" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">B2 · 对译双页</text>
+    <text x="38" y="310" class="note">已选主图标，翻译语义强、有交换桥</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#b2" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#b2" x="319" y="153" width="48" height="48"/>
+  </g>
+  <g transform="translate(1066 194)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#b3" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">B3 · 极简折页</text>
+    <text x="38" y="310" class="note">轮廓稳定、品牌感强，语义更偏阅读</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#b3" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#b3" x="319" y="153" width="48" height="48"/>
+  </g>
+
+  <text x="92" y="622" class="family">A FAMILY · 气泡减法</text>
+
+  <!-- bottom row -->
+  <g transform="translate(80 650)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#a1" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">A1 · 轻量双气泡</text>
+    <text x="38" y="310" class="note">最熟悉，延续第一轮视觉</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#a1" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#a1" x="319" y="153" width="48" height="48"/>
+  </g>
+  <g transform="translate(573 650)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#a2" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">A2 · 平衡双气泡</text>
+    <text x="38" y="310" class="note">双语等权，更适合页面悬浮按钮</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#a2" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#a2" x="319" y="153" width="48" height="48"/>
+  </g>
+  <g transform="translate(1066 650)">
+    <rect width="454" height="360" rx="38" fill="#fffdf8" filter="url(#shadow)"/>
+    <use href="#a3" x="38" y="30" width="205" height="205"/>
+    <text x="38" y="278" class="label">A3 · 单气泡分栏</text>
+    <text x="38" y="310" class="note">推荐悬浮图形，最紧凑、工具栏最清楚</text>
+    <rect x="305" y="48" width="112" height="76" rx="18" fill="#f5efe4"/>
+    <use href="#a3" x="319" y="62" width="48" height="48"/>
+    <rect x="305" y="139" width="112" height="76" rx="18" fill="#263746"/>
+    <use href="#a3" x="319" y="153" width="48" height="48"/>
+  </g>
+
+  <rect x="80" y="1060" width="1440" height="2" fill="#172b3d" opacity=".12"/>
+  <text x="80" y="1103" class="subtitle">最终组合：B2 负责品牌入口 · A3 负责“点击即翻译”的页面动作</text>
+</svg>

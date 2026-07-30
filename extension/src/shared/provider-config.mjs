@@ -1,9 +1,16 @@
+import {
+  CUSTOM_PROVIDER_PROFILE,
+  DEEPSEEK_PROVIDER_PROFILE,
+  validateProviderProfile
+} from "./runtime-limits.mjs";
+
 export const DEEPSEEK_PRESET = Object.freeze({
   name: "DeepSeek",
   baseUrl: "https://api.deepseek.com",
-  model: "deepseek-chat",
+  model: "deepseek-v4-flash",
   targetLanguage: "简体中文",
-  jsonMode: true
+  jsonMode: true,
+  performanceProfile: DEEPSEEK_PROVIDER_PROFILE
 });
 
 function isLoopbackHostname(hostname) {
@@ -55,6 +62,28 @@ export function getChatCompletionsUrl(baseUrl) {
   return `${normalized}/chat/completions`;
 }
 
+function isDeepSeekProvider(provider) {
+  try {
+    return (
+      new URL(normalizeBaseUrl(provider?.baseUrl)).hostname ===
+      "api.deepseek.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function resolveProviderProfile(provider) {
+  if (provider?.performanceProfile !== undefined) {
+    return validateProviderProfile(provider.performanceProfile);
+  }
+  return {
+    ...(isDeepSeekProvider(provider)
+      ? DEEPSEEK_PROVIDER_PROFILE
+      : CUSTOM_PROVIDER_PROFILE)
+  };
+}
+
 export function validateProviderDraft(draft) {
   const provider = {
     id: typeof draft?.id === "string" ? draft.id : "",
@@ -66,7 +95,8 @@ export function validateProviderDraft(draft) {
       typeof draft?.targetLanguage === "string"
         ? draft.targetLanguage.trim()
         : "",
-    jsonMode: Boolean(draft?.jsonMode)
+    jsonMode: Boolean(draft?.jsonMode),
+    performanceProfile: resolveProviderProfile(draft)
   };
 
   if (!provider.name) {
@@ -100,7 +130,8 @@ export function toPublicProviderStatus(state) {
       id: selected.id,
       name: selected.name,
       model: selected.model,
-      targetLanguage: selected.targetLanguage
+      targetLanguage: selected.targetLanguage,
+      performanceProfile: resolveProviderProfile(selected)
     }
   };
 }

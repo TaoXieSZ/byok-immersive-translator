@@ -1,13 +1,26 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: Chrome/Chromium Manifest V3 extension using vanilla JavaScript
+  ES modules, browser extension APIs, CSS, and the Node.js built-in test runner.
+  The extension has zero runtime package dependencies.
+
+  Architecture: Popup and the in-page floating controller command a Content
+  Script session state machine. The Content Script extracts and batches visible
+  text; the Service Worker owns provider credentials, concurrency, cancellation,
+  and OpenAI-compatible requests. Provider configuration stays in local storage
+  restricted to trusted extension contexts.
+
+  Security conventions: keep current-page injection behind activeTab; request
+  exact provider origins at runtime; require HTTPS except for loopback
+  development; never expose API keys to Content Scripts; render provider output
+  with textContent; do not use remote hosted code.
+
+  Quality conventions: run npm run verify after every change. Tests use
+  node:test and must cover pure validation as well as orchestration boundaries.
+  Keep content-side and background translation concurrency sourced from the same
+  shared constant. Use structured translation logs containing sessionId and
+  batchIndex without logging credentials or full page content.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

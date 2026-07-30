@@ -16,6 +16,83 @@
         <p class="lede">Token 只保存在这台设备。扩展不会建设中转服务器，也不会同步你的凭据。</p>
       </header>
 
+      <section class="permission-card" aria-labelledby="page-access-title">
+        <div>
+          <p class="eyebrow">可选网站访问</p>
+          <h2 id="page-access-title">一键页面入口</h2>
+          <p class="permission-copy">
+            开启后，扩展会在普通 HTTP/HTTPS 网页自动显示悬浮按钮。此功能默认关闭，不影响你的翻译服务配置。
+          </p>
+        </div>
+        <label class="permission-toggle">
+          <input id="page-access" type="checkbox" role="switch">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span>允许在普通网页自动显示</span>
+        </label>
+        <p id="page-access-status" class="permission-status" role="status" aria-live="polite">
+          未开启：点击扩展按钮后，仍可通过 activeTab 临时翻译当前页面。
+        </p>
+      </section>
+
+      <section class="appearance-card" aria-labelledby="translation-font-title">
+        <div class="appearance-heading">
+          <div>
+            <p class="eyebrow">阅读外观</p>
+            <h2 id="translation-font-title">译文字体</h2>
+            <p class="appearance-copy">
+              只使用这台设备已安装的本机字体，不会下载字体，也不会改变原文和网站控件。
+            </p>
+          </div>
+          <p id="font-availability" class="font-availability" role="status" aria-live="polite">
+            正在检测字体…
+          </p>
+        </div>
+
+        <form id="appearance-form" class="appearance-form">
+          <fieldset class="font-choices">
+            <legend class="sr-only">选择译文字体</legend>
+            <label class="font-choice">
+              <input type="radio" name="appearance-mode" value="default">
+              <span><strong>跟随网页</strong><small>保持当前网站的正文与等宽字体。</small></span>
+            </label>
+            <label class="font-choice">
+              <input type="radio" name="appearance-mode" value="maple-mono">
+              <span><strong>Maple Mono</strong><small>优先使用已安装的 Maple Mono，缺失时自动回退。</small></span>
+            </label>
+            <label class="font-choice">
+              <input type="radio" name="appearance-mode" value="custom">
+              <span><strong>自定义本机字体</strong><small>按优先顺序填写最多 4 个字体名称。</small></span>
+            </label>
+          </fieldset>
+
+          <label id="custom-font-field" class="custom-font-field">
+            <span>字体 family</span>
+            <textarea id="custom-font-families" rows="3" spellcheck="false"
+              placeholder="例如：&#10;Maple Mono NF CN&#10;LXGW WenKai"></textarea>
+            <small>每行一个，也可以用英文逗号分隔；这里只接受字体名称，不接受 CSS 或 URL。</small>
+          </label>
+
+          <div class="font-preview" aria-labelledby="font-preview-title">
+            <div class="preview-label">
+              <span id="font-preview-title">实时预览</span>
+              <small>未保存的选择也会立即显示</small>
+            </div>
+            <p id="font-preview-body" class="font-preview-body">
+              让翻译更适合阅读。Readable English 0123456789，。！？「」—…
+            </p>
+            <p class="font-preview-code">
+              <code id="font-preview-code">const translated = true;</code>
+              <kbd id="font-preview-kbd">⌘ Enter</kbd>
+            </p>
+          </div>
+
+          <div class="appearance-actions">
+            <div id="appearance-feedback" class="appearance-feedback" role="status" aria-live="polite"></div>
+            <button id="save-appearance" class="button button--primary" type="submit">保存译文字体</button>
+          </div>
+        </form>
+      </section>
+
       <section class="workspace">
         <aside class="provider-rail">
           <div class="rail-heading">

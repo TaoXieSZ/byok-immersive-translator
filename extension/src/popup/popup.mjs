@@ -1,4 +1,11 @@
-import { MessageType } from "../shared/messages.mjs";
+import {
+  MessageType,
+  TranslationScope
+} from "../shared/messages.mjs";
+import {
+  createStartPageMessage,
+  isSupportedPageUrl
+} from "./popup-actions.mjs";
 
 const elements = {
   providerName: document.querySelector("#provider-name"),
@@ -14,17 +21,16 @@ const elements = {
   stop: document.querySelector("#stop"),
   retry: document.querySelector("#retry"),
   restore: document.querySelector("#restore"),
-  options: document.querySelector("#open-options")
+  options: document.querySelector("#open-options"),
+  scopes: [...document.querySelectorAll("[name='translation-scope']")]
 };
 
 let activeTab = null;
 let providerConfigured = false;
 let pollTimer = null;
 let pageStatus = "idle";
-
-function isSupportedUrl(url) {
-  return /^https?:\/\//i.test(url ?? "");
-}
+let selectedScope = TranslationScope.MAIN_CONTENT;
+const TRANSLATION_SCOPE_STORAGE_KEY = "translationScope";
 
 function setFeedback(message = "", tone = "") {
   elements.feedback.textContent = message;
@@ -60,19 +66,22 @@ function renderStatus(status = {}) {
   elements.start.disabled =
     pageStatus === "translating" ||
     !providerConfigured ||
-    !isSupportedUrl(activeTab?.url);
+    !isSupportedPageUrl(activeTab?.url);
 
   if (status.lastError?.message) {
     setFeedback(status.lastError.message, "error");
   }
 }
 
-async function sendToPage(type) {
+async function sendToPage(message) {
   if (!activeTab?.id) {
     return null;
   }
   try {
-    return await chrome.tabs.sendMessage(activeTab.id, { type });
+    return await chrome.tabs.sendMessage(
+      activeTab.id,
+      typeof message === "string" ? { type: message } : message
+    );
   } catch {
     return null;
   }
@@ -96,6 +105,19 @@ async function refreshStatus() {
 
 async function initialize() {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const storedScope = await chrome.storage.local.get(
+    TRANSLATION_SCOPE_STORAGE_KEY
+  );
+  if (
+    Object.values(TranslationScope).includes(
+      storedScope?.[TRANSLATION_SCOPE_STORAGE_KEY]
+    )
+  ) {
+    selectedScope = storedScope[TRANSLATION_SCOPE_STORAGE_KEY];
+    for (const scopeInput of elements.scopes) {
+      scopeInput.checked = scopeInput.value === selectedScope;
+    }
+  }
   const provider = await chrome.runtime.sendMessage({
     type: MessageType.GET_PROVIDER_STATUS
   });
@@ -104,12 +126,12 @@ async function initialize() {
     ? `${provider.provider.name} · ${provider.provider.model}`
     : "尚未配置";
 
-  if (!isSupportedUrl(activeTab?.url)) {
+  if (!isSupportedPageUrl(activeTab?.url)) {
     setFeedback("浏览器内部页面和扩展商店页面不能注入翻译脚本。", "error");
   } else if (!providerConfigured) {
     setFeedback("先打开设置，添加你的 DeepSeek 或其他 API Token。");
   }
-  if (isSupportedUrl(activeTab?.url)) {
+  if (isSupportedPageUrl(activeTab?.url)) {
     await ensureContentController();
   }
   await refreshStatus();
@@ -117,12 +139,22 @@ async function initialize() {
 }
 
 elements.options.addEventListener("click", () => chrome.runtime.openOptionsPage());
+for (const scopeInput of elements.scopes) {
+  scopeInput.addEventListener("change", () => {
+    if (scopeInput.checked) {
+      selectedScope = scopeInput.value;
+      void chrome.storage.local.set({
+        [TRANSLATION_SCOPE_STORAGE_KEY]: selectedScope
+      });
+    }
+  });
+}
 
 elements.start.addEventListener("click", async () => {
   elements.start.disabled = true;
   try {
     await ensureContentController();
-    const response = await sendToPage(MessageType.START_TRANSLATION);
+    const response = await sendToPage(createStartPageMessage(selectedScope));
     if (!response?.ok) {
       throw new Error(response?.error?.message ?? "无法开始翻译当前页面。");
     }
@@ -134,7 +166,7 @@ elements.start.addEventListener("click", async () => {
     elements.start.disabled =
       pageStatus === "translating" ||
       !providerConfigured ||
-      !isSupportedUrl(activeTab?.url);
+      !isSupportedPageUrl(activeTab?.url);
   }
 });
 

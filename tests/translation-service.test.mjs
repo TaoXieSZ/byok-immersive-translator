@@ -1,0 +1,206 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createTranslationService } from "../extension/src/background/translation-service.mjs";
+import { MessageType } from "../extension/src/shared/messages.mjs";
+import { createTranslationCacheRepository } from "../extension/src/shared/translation-cache.mjs";
+import {
+  createFormatDescriptor,
+  serializeFormattedText,
+  toRemoteFormatMetadata
+} from "../extension/src/shared/translation-format.mjs";
+
+const provider = {
+  id: "p1",
+  baseUrl: "https://api.example.com",
+  apiKey: "secret",
+  model: "fast",
+  targetLanguage: "简体中文"
+};
+
+function createService(overrides = {}) {
+  const events = [];
+  const calls = [];
+  const cache = createTranslationCacheRepository();
+  const service = createTranslationService({
+    repository: {
+      async getSelectedProvider() {
+        return provider;
+      }
+    },
+    scheduler: {
+      async run({ operation }) {
+        return operation({ signal: new AbortController().signal });
+      },
+      cancelSession() {
+        return 1;
+      }
+    },
+    cache,
+    requestBatch: async (_provider, items) => {
+      calls.push(["batch", items.map((item) => item.id)]);
+      return Object.fromEntries(
+        items.map((item) => [item.id, `译：${item.text}`])
+      );
+    },
+    requestSingle: async (_provider, text, _language, options) => {
+      calls.push(["single", text, options.stream]);
+      options.onChunk?.("译：");
+      options.onChunk?.(text);
+      return `译：${text}`;
+    },
+    sendToTab: async (tabId, message) => events.push({ tabId, message }),
+    timelineFactory: () => ({ mark() {} }),
+    ...overrides
+  });
+  return { service, calls, events };
+}
+
+test("batch translation only sends cache misses and merges verified hits", async () => {
+  const { service, calls } = createService();
+  const message = {
+    sessionId: "s1",
+    batchIndex: 0,
+    targetLanguage: "简体中文",
+    items: [
+      { id: "a", text: "Hello" },
+      { id: "b", text: "World" }
+    ]
+  };
+
+  const first = await service.translateBatch(message);
+  const second = await service.translateBatch(message);
+
+  assert.deepEqual(first.translations, {
+    a: "译：Hello",
+    b: "译：World"
+  });
+  assert.equal(second.cacheHits, 2);
+  assert.deepEqual(calls, [["batch", ["a", "b"]]]);
+});
+
+test("fast lane emits chunks, completion, and then serves a zero-request hit", async () => {
+  const { service, calls, events } = createService();
+  const message = {
+    sessionId: "s2",
+    blockId: "b1",
+    targetLanguage: "简体中文",
+    text: "Hello"
+  };
+
+  const first = await service.translateStream(message, 9);
+  const second = await service.translateStream(message, 9);
+
+  assert.equal(first.streaming, false);
+  assert.equal(second.cacheHit, true);
+  assert.deepEqual(calls, [["single", "Hello", false]]);
+  assert.deepEqual(
+    events.map(({ message: event }) => event.type),
+    [
+      MessageType.TRANSLATE_STREAM_CHUNK,
+      MessageType.TRANSLATE_STREAM_CHUNK,
+      MessageType.TRANSLATE_STREAM_COMPLETE,
+      MessageType.TRANSLATE_STREAM_COMPLETE
+    ]
+  );
+});
+
+test("stream failure sends a safe error and never writes partial output", async () => {
+  let cacheWrites = 0;
+  const { service, events } = createService({
+    cache: {
+      async get() {
+        return null;
+      },
+      async setVerified() {
+        cacheWrites += 1;
+      }
+    },
+    requestSingle: async (_provider, _text, _language, options) => {
+      options.onChunk("partial");
+      throw Object.assign(new Error("offline"), { name: "NetworkError" });
+    }
+  });
+
+  const result = await service.translateStream(
+    {
+      sessionId: "s3",
+      blockId: "b1",
+      targetLanguage: "简体中文",
+      text: "Hello"
+    },
+    4
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(
+    events.at(-1).message.type,
+    MessageType.TRANSLATE_STREAM_ERROR
+  );
+  assert.equal(cacheWrites, 0);
+});
+
+test("formatted batch failures degrade to typed plain cache entries", async () => {
+  const { service, calls } = createService({
+    requestBatch: async (_provider, items) => {
+      calls.push(["batch", items.map((item) => item.id)]);
+      return { rich: "可读的降级译文" };
+    }
+  });
+  const message = {
+    sessionId: "s-format",
+    batchIndex: 0,
+    targetLanguage: "简体中文",
+    items: [
+      {
+        id: "rich",
+        text: "opaque marked source",
+        format: {
+          version: 1,
+          markIds: ["m0"],
+          fingerprint: "fmt1:abcdef0123456789"
+        }
+      }
+    ]
+  };
+
+  const first = await service.translateBatch(message);
+  const second = await service.translateBatch(message);
+
+  assert.equal(first.translations.rich, "可读的降级译文");
+  assert.equal(first.resultTypes.rich, "format-fallback");
+  assert.equal(second.resultTypes.rich, "format-fallback");
+  assert.equal(second.cacheHits, 1);
+  assert.deepEqual(calls, [["batch", ["rich"]]]);
+});
+
+test("caches complete validated serialized formatting with its fingerprint", async () => {
+  const descriptor = createFormatDescriptor([
+    { id: "m0", type: "code", start: 0, end: 4 }
+  ]);
+  const source = serializeFormattedText("path", descriptor);
+  const [open, close] = source.match(/\uE000BYOKF:[^\uE001]+\uE001/gu);
+  const translated = `${open}路径${close}`;
+  const format = toRemoteFormatMetadata(descriptor);
+  const { service, calls } = createService({
+    requestBatch: async (_provider, items) => {
+      calls.push(["batch", items.map((item) => item.id)]);
+      return { rich: translated };
+    }
+  });
+  const message = {
+    sessionId: "s-formatted",
+    batchIndex: 0,
+    targetLanguage: "简体中文",
+    items: [{ id: "rich", text: source, format }]
+  };
+
+  const first = await service.translateBatch(message);
+  const second = await service.translateBatch(message);
+
+  assert.equal(first.translations.rich, translated);
+  assert.equal(first.resultTypes.rich, "formatted");
+  assert.equal(second.translations.rich, translated);
+  assert.equal(second.resultTypes.rich, "formatted");
+  assert.equal(second.cacheHits, 1);
+  assert.deepEqual(calls, [["batch", ["rich"]]]);
+});

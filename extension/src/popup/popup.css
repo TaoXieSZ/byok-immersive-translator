@@ -40,6 +40,40 @@ h1 { margin: 0; font-family: "Iowan Old Style", "Noto Serif SC", serif; font-siz
 .metrics { display: grid; grid-template-columns: repeat(3, 1fr); color: var(--muted); font-size: 10px; }
 .metrics span + span { border-left: 1px solid var(--line); padding-left: 10px; }
 .metrics strong { display: block; margin-bottom: 2px; color: var(--ink); font-family: "Iowan Old Style", serif; font-size: 20px; }
+.scope-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin: 11px 0 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 253, 248, .62);
+}
+.scope-picker legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.scope-picker label { cursor: pointer; }
+.scope-picker input { position: absolute; opacity: 0; pointer-events: none; }
+.scope-picker span {
+  display: block;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+.scope-picker input:checked + span {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 7px rgba(23, 43, 61, .1);
+}
+.scope-picker input:focus-visible + span { outline: 2px solid rgba(214, 83, 56, .38); }
 .feedback { min-height: 38px; padding: 10px 2px 4px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .feedback[data-tone="error"] { color: #9d3424; }
 .primary-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

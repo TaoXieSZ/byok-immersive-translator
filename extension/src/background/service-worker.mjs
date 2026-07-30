@@ -1,15 +1,17 @@
 import {
   ErrorCode,
   MessageType,
-  publicError,
+  TranslationScope,
   isTrustedExtensionPageSender,
+  publicError,
+  validateGetAppearancePreferenceMessage,
   validateCancelMessage,
   validateProviderTestMessage,
-  validateTranslationBatchMessage
+  validateTranslationBatchMessage,
+  validateTranslationStreamMessage
 } from "../shared/messages.mjs";
 import {
   normalizeProviderError,
-  requestTranslations,
   testProviderConnection
 } from "../shared/openai-adapter.mjs";
 import {
@@ -17,49 +19,48 @@ import {
   restrictStorageToTrustedContexts
 } from "../shared/provider-store.mjs";
 import {
+  APPEARANCE_STORAGE_KEY,
+  createChromeAppearanceRepository,
+  toPublicAppearancePreference
+} from "../shared/appearance-preferences.mjs";
+import {
+  resolveProviderProfile,
   toPublicProviderStatus,
   validateProviderDraft
 } from "../shared/provider-config.mjs";
+import { createAdaptiveScheduler } from "../shared/adaptive-scheduler.mjs";
+import { createChromeTranslationCacheRepository } from "../shared/translation-cache.mjs";
+import { syncPersistentContentScript } from "../shared/content-script-registration.mjs";
+import { isSupportedPageUrl } from "../shared/permissions.mjs";
+import {
+  logTranslationEvent,
+  toSafeLogError
+} from "../shared/translation-log.mjs";
+import { createTranslationService } from "./translation-service.mjs";
 
 const repository = createChromeProviderRepository();
-const activeRequests = new Map();
-const waiters = [];
-let availablePermits = 3;
+const appearanceRepository = createChromeAppearanceRepository();
+const scheduler = createAdaptiveScheduler();
+const cache = createChromeTranslationCacheRepository();
 
-async function withPermit(operation) {
-  if (availablePermits === 0) {
-    await new Promise((resolve) => waiters.push(resolve));
+async function sendToTab(tabId, message) {
+  if (!Number.isInteger(tabId)) {
+    return false;
   }
-  availablePermits -= 1;
   try {
-    return await operation();
-  } finally {
-    availablePermits += 1;
-    waiters.shift()?.();
+    await chrome.tabs.sendMessage(tabId, message);
+    return true;
+  } catch {
+    return false;
   }
 }
 
-function addController(sessionId, controller) {
-  const controllers = activeRequests.get(sessionId) ?? new Set();
-  controllers.add(controller);
-  activeRequests.set(sessionId, controllers);
-}
-
-function removeController(sessionId, controller) {
-  const controllers = activeRequests.get(sessionId);
-  controllers?.delete(controller);
-  if (controllers?.size === 0) {
-    activeRequests.delete(sessionId);
-  }
-}
-
-function cancelSession(sessionId) {
-  const controllers = activeRequests.get(sessionId);
-  for (const controller of controllers ?? []) {
-    controller.abort();
-  }
-  activeRequests.delete(sessionId);
-}
+const translationService = createTranslationService({
+  repository,
+  scheduler,
+  cache,
+  sendToTab
+});
 
 function isExtensionPageSender(sender) {
   return isTrustedExtensionPageSender(
@@ -70,13 +71,35 @@ function isExtensionPageSender(sender) {
 }
 
 function isContentScriptSender(sender) {
-  return sender.id === chrome.runtime.id && Boolean(sender.tab?.id);
+  return sender.id === chrome.runtime.id && Number.isInteger(sender.tab?.id);
+}
+
+function isWebContentScriptSender(sender) {
+  return (
+    isContentScriptSender(sender) &&
+    isSupportedPageUrl(sender.url ?? sender.tab?.url)
+  );
 }
 
 async function handleProviderStatus() {
   return {
     ok: true,
     ...(toPublicProviderStatus(await repository.getState()))
+  };
+}
+
+async function handleAppearancePreference(message, sender) {
+  if (
+    !isWebContentScriptSender(sender) ||
+    !validateGetAppearancePreferenceMessage(message)
+  ) {
+    return publicError(ErrorCode.INVALID_MESSAGE, "无效的字体偏好请求。");
+  }
+  return {
+    ok: true,
+    preference: toPublicAppearancePreference(
+      await appearanceRepository.getPreference()
+    )
   };
 }
 
@@ -87,7 +110,13 @@ async function handleProviderTest(message, sender) {
 
   try {
     const provider = validateProviderDraft(message.provider);
-    await withPermit(() => testProviderConnection(provider));
+    await scheduler.run({
+      providerId: provider.id || `provider-test:${new URL(provider.baseUrl).origin}`,
+      profile: resolveProviderProfile(provider),
+      sessionId: `provider-test:${crypto.randomUUID()}`,
+      maxRetries: 0,
+      operation: ({ signal }) => testProviderConnection(provider, { signal })
+    });
     return { ok: true };
   } catch (error) {
     const normalized = normalizeProviderError(error);
@@ -99,41 +128,36 @@ async function handleProviderTest(message, sender) {
 }
 
 async function handleTranslationBatch(message, sender) {
-  if (!isContentScriptSender(sender) || !validateTranslationBatchMessage(message)) {
+  if (
+    !isContentScriptSender(sender) ||
+    !validateTranslationBatchMessage(message)
+  ) {
     return publicError(
       ErrorCode.INVALID_MESSAGE,
       "翻译请求包含无效或越权字段。"
     );
   }
-
-  const provider = await repository.getSelectedProvider();
-  if (!provider) {
-    return publicError(ErrorCode.NO_PROVIDER, "请先配置并选择翻译服务。");
-  }
-
-  const controller = new AbortController();
-  addController(message.sessionId, controller);
-  try {
-    const translations = await withPermit(() =>
-      requestTranslations(provider, message.items, message.targetLanguage, {
-        signal: controller.signal
-      })
-    );
-    return {
-      ok: true,
-      sessionId: message.sessionId,
-      translations
-    };
-  } catch (error) {
-    const normalized = normalizeProviderError(error);
-    return publicError(normalized.code, normalized.message);
-  } finally {
-    removeController(message.sessionId, controller);
-  }
+  return translationService.translateBatch(message);
 }
 
-async function handleMessage(message, sender) {
+async function handleTranslationStream(message, sender) {
+  if (
+    !isContentScriptSender(sender) ||
+    message?.type !== MessageType.TRANSLATE_STREAM_START ||
+    !validateTranslationStreamMessage(message)
+  ) {
+    return publicError(
+      ErrorCode.INVALID_MESSAGE,
+      "流式翻译请求包含无效或越权字段。"
+    );
+  }
+  return translationService.translateStream(message, sender.tab.id);
+}
+
+export async function handleMessage(message, sender) {
   switch (message?.type) {
+    case MessageType.GET_APPEARANCE_PREFERENCE:
+      return handleAppearancePreference(message, sender);
     case MessageType.GET_PROVIDER_STATUS:
       if (sender.id !== chrome.runtime.id) {
         return publicError(ErrorCode.INVALID_MESSAGE, "无效的状态请求。");
@@ -143,32 +167,132 @@ async function handleMessage(message, sender) {
       return handleProviderTest(message, sender);
     case MessageType.TRANSLATE_BATCH:
       return handleTranslationBatch(message, sender);
+    case MessageType.TRANSLATE_STREAM_START:
+      return handleTranslationStream(message, sender);
     case MessageType.CANCEL_SESSION:
       if (!isContentScriptSender(sender) || !validateCancelMessage(message)) {
         return publicError(ErrorCode.INVALID_MESSAGE, "无效的取消请求。");
       }
-      cancelSession(message.sessionId);
+      translationService.cancelSession(message.sessionId);
       return { ok: true };
     default:
       return publicError(ErrorCode.INVALID_MESSAGE, "未知扩展消息。");
   }
 }
 
+export async function handleAppearanceStorageChange(changes, areaName) {
+  if (
+    areaName !== "local" ||
+    !Object.prototype.hasOwnProperty.call(changes ?? {}, APPEARANCE_STORAGE_KEY)
+  ) {
+    return;
+  }
+
+  const preference = toPublicAppearancePreference(
+    await appearanceRepository.getPreference()
+  );
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(
+    tabs
+      .filter(
+        (tab) => Number.isInteger(tab?.id) && isSupportedPageUrl(tab.url)
+      )
+      .map((tab) =>
+        sendToTab(tab.id, {
+          type: MessageType.APPEARANCE_PREFERENCE_UPDATED,
+          preference
+        })
+      )
+  );
+}
+
+async function ensureContentController(tabId) {
+  const status = await sendToTab(tabId, {
+    type: MessageType.GET_PAGE_STATUS
+  });
+  if (status) {
+    return;
+  }
+  await chrome.scripting.insertCSS({
+    target: { tabId },
+    files: ["src/content/content.css"]
+  });
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ["src/content/bootstrap.js"]
+  });
+}
+
+async function handleCommand(command) {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+  if (!Number.isInteger(tab?.id) || !isSupportedPageUrl(tab.url)) {
+    return;
+  }
+
+  await ensureContentController(tab.id);
+  const message =
+    command === "translate-whole-page"
+      ? { type: MessageType.START_FULL_PAGE_TRANSLATION }
+      : {
+          type: MessageType.TOGGLE_TRANSLATION,
+          scope: TranslationScope.MAIN_CONTENT
+        };
+  await sendToTab(tab.id, message);
+}
+
+async function syncExtensionRuntime() {
+  await restrictStorageToTrustedContexts();
+  if (chrome.storage.session?.setAccessLevel) {
+    await chrome.storage.session.setAccessLevel({
+      accessLevel: "TRUSTED_CONTEXTS"
+    });
+  }
+  await syncPersistentContentScript();
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender)
     .then(sendResponse)
-    .catch(() =>
+    .catch((error) => {
+      logTranslationEvent("error", "background.message.failed", {
+        error: toSafeLogError(error)
+      });
       sendResponse(
         publicError(ErrorCode.UNKNOWN_ERROR, "扩展后台处理请求时发生错误。")
-      )
-    );
+      );
+    });
   return true;
 });
 
+chrome.commands.onCommand.addListener((command) => {
+  void handleCommand(command).catch((error) =>
+    logTranslationEvent("error", "background.command.failed", {
+      command,
+      error: toSafeLogError(error)
+    })
+  );
+});
+
 chrome.runtime.onInstalled.addListener(() => {
-  void restrictStorageToTrustedContexts();
+  void syncExtensionRuntime();
 });
 chrome.runtime.onStartup.addListener(() => {
-  void restrictStorageToTrustedContexts();
+  void syncExtensionRuntime();
 });
-void restrictStorageToTrustedContexts();
+chrome.permissions.onAdded.addListener(() => {
+  void syncPersistentContentScript();
+});
+chrome.permissions.onRemoved.addListener(() => {
+  void syncPersistentContentScript();
+});
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  void handleAppearanceStorageChange(changes, areaName).catch((error) =>
+    logTranslationEvent("error", "background.appearance.broadcast-failed", {
+      error: toSafeLogError(error)
+    })
+  );
+});
+void syncExtensionRuntime();
