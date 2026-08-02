@@ -40,7 +40,7 @@ const FLOATING_ACTION_SVG = `
   <svg viewBox="0 0 48 48" data-icon="floating-a3" aria-hidden="true">
     <path d="M6 6h36a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H28l-8 7v-7H6a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z" fill="#172b3d"/>
     <path d="M24 6h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H28l-4 3.5Z" fill="#d95b40"/>
-    <path d="M8 15h12M14 12v3c0 7-3.2 11-8 14M9 20c2 3 4.5 5.2 8 7" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="4.5" y="29.5" fill="#fffdf8" font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="19.5" font-weight="800">好</text>
     <path d="m29 29 4-13 5 13M31 25h5" fill="none" stroke="#fffdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 `;

@@ -68,6 +68,31 @@
 
 字体检测是提示而非渲染前提：Canvas 字宽相同的极少数字体仍可能出现假阴性，但不会阻止保存，CSS 始终追加确定性的系统回退栈。真实 Provider 的整页完成时间仍会受网络、模型负载和限流影响，字体热更新本身不发起网络请求。
 
+## 2026-08-02 段落魔法镜验收
+
+- 浏览器：BrowserOS；站点：[Claude Code from Source — Chapter 1](https://claude-code-from-source.com/ch01-architecture/)；Provider：已保存的真实 DeepSeek `deepseek-chat`。
+- 重新加载未打包扩展并刷新文章后，选择普通英文短句会在选区末端显示 A3 按钮；点击前 Service Worker 没有收到选区请求。跨入行内 `code` 的选区不显示入口。
+- 点击后卡片立即展示“正在翻译所选文字…”，随后流式显示纯文本结果。实测 `At build time, each feature flag resolves to a boolean literal.` 得到“在构建时，每个特性标志都会解析为布尔字面量。”
+- 关闭后重新选择同一句，首次状态采样已经是完成结果；确定性测试另行锁定缓存命中 300ms 目标及零远端请求。点击“重新翻译”会重新进入 loading 并绕过缓存读取。
+- 在重新翻译的 loading 阶段关闭卡片，等待 2.5 秒没有迟到结果重新打开卡片。
+- 暗色页面中按钮和卡片保持可辨识；选区靠近视口底边时入口保持在安全区域。
+- 首轮滚动验收发现选区滚出顶部后卡片会沿用负纵坐标；修复双向视口限制并重载后，卡片稳定停在顶部 12px 安全边距内。
+- 整页翻译运行期间重新选择句子并启动魔法镜，两条任务独立推进：页面继续插入译文，魔法镜完成独立流式结果；随后恢复整页原文不会留下页面译文节点。
+- 真实 Provider 配置未被故意破坏来制造认证失败；无 Provider、认证、限流、网络、无效响应和重试状态由后台集成测试覆盖。真实慢响应、显式重新翻译和取消恢复路径均已在 BrowserOS 验证。
+- 清空旧扩展错误后完成一次新的真实选区翻译，BrowserOS 扩展错误页没有新增条目；随后打开 `service-worker.mjs` DevTools，控制台为 `0 messages`，未出现 API 凭据、选区或上下文明文。
+
+### 魔法镜视觉证据
+
+![选区旁的 A3 翻译入口](./assets/real-site-magic-lens-trigger.jpg)
+
+![点击后立即显示 loading](./assets/real-site-magic-lens-loading.jpg)
+
+![真实 DeepSeek 选区翻译结果](./assets/real-site-magic-lens-result.jpg)
+
+![暗色页面中的翻译卡片](./assets/real-site-magic-lens-dark.jpg)
+
+![选区滚出顶部后的安全边距定位](./assets/real-site-magic-lens-scroll.jpg)
+
 ## 视觉证据
 
 当前轻量双语样式：

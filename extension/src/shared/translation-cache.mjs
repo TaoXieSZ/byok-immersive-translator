@@ -1,6 +1,7 @@
 export const TRANSLATION_CACHE_VERSION = 2;
 export const TRANSLATION_CACHE_PREFIX =
   `byokTranslationCache:v${TRANSLATION_CACHE_VERSION}:`;
+export const SELECTION_CACHE_SCHEMA_VERSION = "selection-context-v1";
 
 export const TranslationCacheResultType = Object.freeze({
   PLAIN: "plain",
@@ -86,6 +87,42 @@ export async function createTranslationCacheKey(
     cryptoImpl
   );
   return `${TRANSLATION_CACHE_PREFIX}${digest}`;
+}
+
+export async function createSelectionTranslationCacheKey(
+  {
+    providerId,
+    model,
+    targetLanguage,
+    promptVersion,
+    responseSchemaVersion,
+    selectionText,
+    contextText
+  },
+  options = {}
+) {
+  const cryptoImpl = options.cryptoImpl ?? globalThis.crypto;
+  const [selectionHash, contextHash] = await Promise.all([
+    hashTranslationSource(selectionText, cryptoImpl),
+    hashTranslationSource(contextText, cryptoImpl)
+  ]);
+  return createTranslationCacheKey(
+    {
+      providerId,
+      model,
+      targetLanguage,
+      promptVersion,
+      responseSchemaVersion,
+      formatSchemaVersion: SELECTION_CACHE_SCHEMA_VERSION,
+      formatFingerprint: "format:plain",
+      source: JSON.stringify({
+        mode: SELECTION_CACHE_SCHEMA_VERSION,
+        selectionHash,
+        contextHash
+      })
+    },
+    options
+  );
 }
 
 function isCacheKey(key) {

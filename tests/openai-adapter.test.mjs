@@ -2,12 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildSingleTranslationRequest,
+  buildSelectionTranslationRequest,
   buildTranslationRequest,
   normalizeProviderError,
   parseRetryAfter,
   parseTranslationMap,
   parseTranslationResults,
   requestSingleTranslation,
+  requestSelectionTranslation,
   requestTranslations
 } from "../extension/src/shared/openai-adapter.mjs";
 import {
@@ -210,6 +212,68 @@ test("builds a pure-text single-segment request", () => {
   assert.equal(body.response_format, undefined);
   assert.match(body.messages[1].content, /Hello/u);
   assert.match(body.messages[0].content, /plain text/u);
+});
+
+test("builds a selection request that treats context only as untrusted disambiguation", () => {
+  const request = buildSelectionTranslationRequest(
+    provider,
+    "agent",
+    "The agent keeps persistent context across sessions.",
+    "简体中文",
+    { stream: true }
+  );
+  const body = JSON.parse(request.init.body);
+  assert.equal(body.stream, true);
+  assert.match(body.messages[0].content, /Translate only selected_text/u);
+  assert.match(body.messages[0].content, /untrusted reference/u);
+  assert.deepEqual(
+    JSON.parse(body.messages[1].content.split("\n\n").at(-1)),
+    {
+      selected_text: "agent",
+      context_text: "The agent keeps persistent context across sessions."
+    }
+  );
+  assert.doesNotMatch(request.init.body, /document|outerHTML|cookie/iu);
+});
+
+test("supports streaming and non-streaming selection translations", async () => {
+  const chunks = [];
+  assert.equal(
+    await requestSelectionTranslation(
+      provider,
+      "agent",
+      "The agent keeps context.",
+      "中文",
+      {
+        onChunk: (chunk) => chunks.push(chunk),
+        fetchImpl: async () =>
+          streamResponse([
+            'data: {"choices":[{"delta":{"content":"智能"}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"体"}}]}\n\ndata: [DONE]\n\n'
+          ])
+      }
+    ),
+    "智能体"
+  );
+  assert.deepEqual(chunks, ["智能", "体"]);
+  assert.equal(
+    await requestSelectionTranslation(
+      provider,
+      "agent",
+      "The agent keeps context.",
+      "中文",
+      {
+        stream: false,
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => ({
+            choices: [{ message: { content: "智能体" } }]
+          })
+        })
+      }
+    ),
+    "智能体"
+  );
 });
 
 test("parses split SSE data frames and emits only text chunks", async () => {

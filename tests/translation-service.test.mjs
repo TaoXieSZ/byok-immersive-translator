@@ -48,6 +48,18 @@ function createService(overrides = {}) {
       options.onChunk?.(text);
       return `译：${text}`;
     },
+    requestSelection: async (
+      _provider,
+      selectionText,
+      contextText,
+      _language,
+      options
+    ) => {
+      calls.push(["selection", selectionText, contextText, options.stream]);
+      options.onChunk?.("智能");
+      options.onChunk?.("体");
+      return "智能体";
+    },
     sendToTab: async (tabId, message) => events.push({ tabId, message }),
     timelineFactory: () => ({ mark() {} }),
     ...overrides
@@ -203,4 +215,138 @@ test("caches complete validated serialized formatting with its fingerprint", asy
   assert.equal(second.resultTypes.rich, "formatted");
   assert.equal(second.cacheHits, 1);
   assert.deepEqual(calls, [["batch", ["rich"]]]);
+});
+
+test("selection translation streams, caches by context, and serves a zero-request hit", async () => {
+  const { service, calls, events } = createService();
+  const message = {
+    requestId: "selection-1",
+    targetLanguage: "简体中文",
+    selectionText: "agent",
+    contextText: "The agent keeps persistent context."
+  };
+  const first = await service.translateSelection(message, 9);
+  const second = await service.translateSelection(
+    { ...message, requestId: "selection-2" },
+    9
+  );
+
+  assert.equal(first.cacheHit, false);
+  assert.equal(second.cacheHit, true);
+  assert.deepEqual(calls, [
+    ["selection", "agent", "The agent keeps persistent context.", false]
+  ]);
+  assert.deepEqual(
+    events.map(({ message: event }) => event.type),
+    [
+      MessageType.TRANSLATE_SELECTION_CHUNK,
+      MessageType.TRANSLATE_SELECTION_CHUNK,
+      MessageType.TRANSLATE_SELECTION_COMPLETE,
+      MessageType.TRANSLATE_SELECTION_COMPLETE
+    ]
+  );
+});
+
+test("selection cache separates context and explicit retranslation bypasses reads", async () => {
+  const { service, calls } = createService();
+  const base = {
+    targetLanguage: "简体中文",
+    selectionText: "agent"
+  };
+  await service.translateSelection(
+    { ...base, requestId: "s1", contextText: "The AI agent acts." },
+    1
+  );
+  await service.translateSelection(
+    { ...base, requestId: "s2", contextText: "The legal agent acts." },
+    1
+  );
+  await service.translateSelection(
+    {
+      ...base,
+      requestId: "s3",
+      contextText: "The AI agent acts.",
+      bypassCache: true
+    },
+    1
+  );
+  assert.equal(calls.filter(([kind]) => kind === "selection").length, 3);
+});
+
+test("selection cancellation suppresses late chunks and completion", async () => {
+  let finish;
+  let options;
+  const { service, events } = createService({
+    requestSelection: async (_provider, _selection, _context, _language, value) => {
+      options = value;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    }
+  });
+  const pending = service.translateSelection(
+    {
+      requestId: "selection-cancel",
+      targetLanguage: "中文",
+      selectionText: "agent",
+      contextText: "The agent acts."
+    },
+    3
+  );
+  while (!finish) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  assert.equal(service.cancelSelection("selection-cancel"), 1);
+  options.onChunk("迟到");
+  finish("迟到译文");
+  const result = await pending;
+  assert.equal(result.error.code, "REQUEST_CANCELLED");
+  assert.deepEqual(events, []);
+});
+
+test("selection failures emit safe errors and never write partial cache entries", async () => {
+  let cacheWrites = 0;
+  const { service, events } = createService({
+    cache: {
+      async get() {
+        return null;
+      },
+      async setVerified() {
+        cacheWrites += 1;
+      }
+    },
+    requestSelection: async (_provider, _selection, _context, _language, options) => {
+      options.onChunk("partial");
+      throw Object.assign(new Error("offline"), { name: "NetworkError" });
+    }
+  });
+  const result = await service.translateSelection(
+    {
+      requestId: "selection-fail",
+      targetLanguage: "中文",
+      selectionText: "agent",
+      contextText: "The agent acts."
+    },
+    4
+  );
+  assert.equal(result.error.code, "NETWORK_ERROR");
+  assert.equal(events.at(-1).message.type, MessageType.TRANSLATE_SELECTION_ERROR);
+  assert.equal(cacheWrites, 0);
+});
+
+test("selection translation reports missing provider without sending page data", async () => {
+  const { service, events } = createService({
+    repository: { async getSelectedProvider() { return null; } }
+  });
+  const result = await service.translateSelection(
+    {
+      requestId: "selection-no-provider",
+      targetLanguage: "中文",
+      selectionText: "agent",
+      contextText: "The agent acts."
+    },
+    4
+  );
+  assert.equal(result.error.code, "NO_PROVIDER");
+  assert.deepEqual(events, []);
 });

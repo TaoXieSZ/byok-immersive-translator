@@ -7,6 +7,7 @@ import {
   validateGetAppearancePreferenceMessage,
   validateCancelMessage,
   validateProviderTestMessage,
+  validateSelectionMessage,
   validateTranslationBatchMessage,
   validateTranslationStreamMessage
 } from "../shared/messages.mjs";
@@ -154,6 +155,20 @@ async function handleTranslationStream(message, sender) {
   return translationService.translateStream(message, sender.tab.id);
 }
 
+async function handleSelectionTranslation(message, sender) {
+  if (
+    !isWebContentScriptSender(sender) ||
+    message?.type !== MessageType.TRANSLATE_SELECTION_START ||
+    !validateSelectionMessage(message)
+  ) {
+    return publicError(
+      ErrorCode.INVALID_MESSAGE,
+      "选区翻译请求包含无效或越权字段。"
+    );
+  }
+  return translationService.translateSelection(message, sender.tab.id);
+}
+
 export async function handleMessage(message, sender) {
   switch (message?.type) {
     case MessageType.GET_APPEARANCE_PREFERENCE:
@@ -169,6 +184,14 @@ export async function handleMessage(message, sender) {
       return handleTranslationBatch(message, sender);
     case MessageType.TRANSLATE_STREAM_START:
       return handleTranslationStream(message, sender);
+    case MessageType.TRANSLATE_SELECTION_START:
+      return handleSelectionTranslation(message, sender);
+    case MessageType.CANCEL_SELECTION:
+      if (!isWebContentScriptSender(sender) || !validateSelectionMessage(message)) {
+        return publicError(ErrorCode.INVALID_MESSAGE, "无效的选区取消请求。");
+      }
+      translationService.cancelSelection(message.requestId);
+      return { ok: true };
     case MessageType.CANCEL_SESSION:
       if (!isContentScriptSender(sender) || !validateCancelMessage(message)) {
         return publicError(ErrorCode.INVALID_MESSAGE, "无效的取消请求。");

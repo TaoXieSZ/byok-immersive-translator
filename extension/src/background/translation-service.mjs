@@ -5,12 +5,14 @@ import {
 } from "../shared/messages.mjs";
 import {
   normalizeProviderError,
+  requestSelectionTranslation,
   requestSingleTranslation,
   requestTranslations
 } from "../shared/openai-adapter.mjs";
 import { resolveProviderProfile } from "../shared/provider-config.mjs";
 import {
   TranslationCacheResultType,
+  createSelectionTranslationCacheKey,
   createTranslationCacheKey
 } from "../shared/translation-cache.mjs";
 import {
@@ -26,6 +28,8 @@ import {
 export const TRANSLATION_PROMPT_VERSION = "translation-v3-format-v1";
 export const BATCH_RESPONSE_SCHEMA_VERSION = "batch-json-v2";
 export const SINGLE_RESPONSE_SCHEMA_VERSION = "single-text-v2";
+export const SELECTION_PROMPT_VERSION = "selection-context-v1";
+export const SELECTION_RESPONSE_SCHEMA_VERSION = "selection-text-v1";
 const PLAIN_FORMAT_FINGERPRINT = "format:plain";
 
 function cacheContext(
@@ -95,12 +99,14 @@ export function createTranslationService({
   cache,
   requestBatch = requestTranslations,
   requestSingle = requestSingleTranslation,
+  requestSelection = requestSelectionTranslation,
   sendToTab = async () => {},
   timelineFactory = createPerformanceTimeline
 }) {
   if (!repository || !scheduler || !cache) {
     throw new Error("Translation service dependencies are required.");
   }
+  const selectionTokens = new Map();
 
   async function selectedProvider() {
     return repository.getSelectedProvider();
@@ -352,9 +358,133 @@ export function createTranslationService({
     }
   }
 
+  async function translateSelection(message, tabId) {
+    const provider = await selectedProvider();
+    if (!provider) {
+      return publicError(ErrorCode.NO_PROVIDER, "请先配置并选择翻译服务。");
+    }
+    const token = Symbol(message.requestId);
+    selectionTokens.set(message.requestId, token);
+    const isCurrent = () => selectionTokens.get(message.requestId) === token;
+    const key = await createSelectionTranslationCacheKey({
+      providerId: provider.id,
+      model: provider.model,
+      targetLanguage: message.targetLanguage,
+      promptVersion: SELECTION_PROMPT_VERSION,
+      responseSchemaVersion: SELECTION_RESPONSE_SCHEMA_VERSION,
+      selectionText: message.selectionText,
+      contextText: message.contextText
+    });
+    const timeline = timelineFactory({
+      sessionId: message.requestId,
+      context: "selection"
+    });
+
+    if (message.bypassCache !== true) {
+      const entry = await cache.get(key);
+      if (entry && isCurrent()) {
+        await sendToTab(tabId, {
+          type: MessageType.TRANSLATE_SELECTION_COMPLETE,
+          requestId: message.requestId,
+          text: entry.translation,
+          cacheHit: true
+        });
+        selectionTokens.delete(message.requestId);
+        timeline.mark("cache-hit", { channel: "selection" });
+        return {
+          ok: true,
+          requestId: message.requestId,
+          text: entry.translation,
+          cacheHit: true
+        };
+      }
+    }
+
+    const profile = resolveProviderProfile(provider);
+    try {
+      const text = await scheduler.run({
+        providerId: provider.id,
+        profile,
+        sessionId: message.requestId,
+        maxRetries: 0,
+        operation: ({ signal }) =>
+          requestSelection(
+            provider,
+            message.selectionText,
+            message.contextText,
+            message.targetLanguage,
+            {
+              signal,
+              stream: profile.stream,
+              onChunk: (chunk) => {
+                if (!isCurrent()) return;
+                void sendToTab(tabId, {
+                  type: MessageType.TRANSLATE_SELECTION_CHUNK,
+                  requestId: message.requestId,
+                  chunk
+                });
+              }
+            }
+          )
+      });
+      if (!isCurrent()) {
+        return publicError(ErrorCode.REQUEST_CANCELLED, "翻译请求已取消。");
+      }
+      await cache.setVerified(key, text, {
+        sessionId: message.requestId,
+        resultType: TranslationCacheResultType.PLAIN,
+        formatFingerprint: PLAIN_FORMAT_FINGERPRINT
+      });
+      await sendToTab(tabId, {
+        type: MessageType.TRANSLATE_SELECTION_COMPLETE,
+        requestId: message.requestId,
+        text,
+        cacheHit: false
+      });
+      selectionTokens.delete(message.requestId);
+      timeline.mark("selection-complete", {
+        channel: "selection",
+        transport: profile.stream ? "stream" : "single"
+      });
+      return {
+        ok: true,
+        requestId: message.requestId,
+        text,
+        cacheHit: false
+      };
+    } catch (error) {
+      const normalized = normalizeProviderError(error);
+      if (isCurrent()) {
+        await sendToTab(tabId, {
+          type: MessageType.TRANSLATE_SELECTION_ERROR,
+          requestId: message.requestId,
+          error: {
+            code: normalized.code,
+            message: normalized.message
+          }
+        });
+        selectionTokens.delete(message.requestId);
+      }
+      timeline.mark(
+        "selection-failed",
+        {
+          channel: "selection",
+          error: toSafeLogError(normalized)
+        },
+        "error"
+      );
+      return publicError(normalized.code, normalized.message);
+    }
+  }
+
   return {
     translateBatch,
     translateStream,
+    translateSelection,
+    cancelSelection(requestId) {
+      selectionTokens.delete(requestId);
+      return scheduler.cancelSession(requestId);
+    },
     cancelSession(sessionId) {
       return scheduler.cancelSession(sessionId);
     }

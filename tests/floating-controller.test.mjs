@@ -33,6 +33,7 @@ test("uses B2 for panel branding and A3 for the floating translation action", as
 
   assert.match(source, /data-icon="brand-b2"/u);
   assert.match(source, /data-icon="floating-a3"/u);
+  assert.match(source, />好<\/text>/u);
   assert.match(
     source,
     /class="panel__mark">\$\{BRAND_MARK_SVG\}<\/span>/u

@@ -12,7 +12,9 @@ test("shared modules load without runtime dependencies", async () => {
     import("../extension/src/shared/permissions.mjs"),
     import("../extension/src/shared/content-script-registration.mjs"),
     import("../extension/src/shared/translation-format.mjs"),
-    import("../extension/src/shared/translation-cache.mjs")
+    import("../extension/src/shared/translation-cache.mjs"),
+    import("../extension/src/content/selection-snapshot.mjs"),
+    import("../extension/src/content/magic-lens-controller.mjs")
   ]);
-  assert.equal(modules.length, 10);
+  assert.equal(modules.length, 12);
 });

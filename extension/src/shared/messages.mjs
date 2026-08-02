@@ -20,6 +20,11 @@ export const MessageType = Object.freeze({
   TRANSLATE_STREAM_CHUNK: "translation:stream:chunk",
   TRANSLATE_STREAM_COMPLETE: "translation:stream:complete",
   TRANSLATE_STREAM_ERROR: "translation:stream:error",
+  TRANSLATE_SELECTION_START: "selection:translate:start",
+  TRANSLATE_SELECTION_CHUNK: "selection:translate:chunk",
+  TRANSLATE_SELECTION_COMPLETE: "selection:translate:complete",
+  TRANSLATE_SELECTION_ERROR: "selection:translate:error",
+  CANCEL_SELECTION: "selection:translate:cancel",
   CANCEL_SESSION: "translation:cancel",
   GET_PAGE_STATUS: "page:get-status",
   START_TRANSLATION: "page:start",
@@ -66,6 +71,13 @@ const TRANSLATION_STREAM_TYPES = new Set([
   MessageType.TRANSLATE_STREAM_CHUNK,
   MessageType.TRANSLATE_STREAM_COMPLETE,
   MessageType.TRANSLATE_STREAM_ERROR
+]);
+const SELECTION_MESSAGE_TYPES = new Set([
+  MessageType.TRANSLATE_SELECTION_START,
+  MessageType.TRANSLATE_SELECTION_CHUNK,
+  MessageType.TRANSLATE_SELECTION_COMPLETE,
+  MessageType.TRANSLATE_SELECTION_ERROR,
+  MessageType.CANCEL_SELECTION
 ]);
 const ERROR_CODES = new Set(Object.values(ErrorCode));
 const FORMAT_RESULT_TYPES = new Set(Object.values(FORMAT_RESULT_TYPE));
@@ -324,6 +336,77 @@ export function validateCancelMessage(message) {
     message.type === MessageType.CANCEL_SESSION &&
     isSafeIdentifier(message.sessionId)
   );
+}
+
+export function validateSelectionMessage(message) {
+  if (
+    !isPlainObject(message) ||
+    !SELECTION_MESSAGE_TYPES.has(message.type) ||
+    !isSafeIdentifier(message.requestId)
+  ) {
+    return false;
+  }
+
+  switch (message.type) {
+    case MessageType.TRANSLATE_SELECTION_START:
+      return (
+        hasOnlyKeys(
+          message,
+          new Set([
+            "type",
+            "requestId",
+            "targetLanguage",
+            "selectionText",
+            "contextText",
+            "bypassCache"
+          ])
+        ) &&
+        typeof message.targetLanguage === "string" &&
+        message.targetLanguage.length >= 1 &&
+        message.targetLanguage.length <= 80 &&
+        typeof message.selectionText === "string" &&
+        message.selectionText.length >= 1 &&
+        message.selectionText.length <= 2_000 &&
+        typeof message.contextText === "string" &&
+        message.contextText.length >= 1 &&
+        message.contextText.length <= 4_000 &&
+        (message.bypassCache === undefined ||
+          typeof message.bypassCache === "boolean")
+      );
+    case MessageType.TRANSLATE_SELECTION_CHUNK:
+      return (
+        hasOnlyKeys(message, new Set(["type", "requestId", "chunk"])) &&
+        typeof message.chunk === "string" &&
+        message.chunk.length >= 1 &&
+        message.chunk.length <= 20_000
+      );
+    case MessageType.TRANSLATE_SELECTION_COMPLETE:
+      return (
+        hasOnlyKeys(
+          message,
+          new Set(["type", "requestId", "text", "cacheHit"])
+        ) &&
+        typeof message.text === "string" &&
+        message.text.length >= 1 &&
+        message.text.length <= 20_000 &&
+        (message.cacheHit === undefined ||
+          typeof message.cacheHit === "boolean")
+      );
+    case MessageType.TRANSLATE_SELECTION_ERROR:
+      return (
+        hasOnlyKeys(message, new Set(["type", "requestId", "error"])) &&
+        isPlainObject(message.error) &&
+        hasOnlyKeys(message.error, new Set(["code", "message"])) &&
+        ERROR_CODES.has(message.error.code) &&
+        typeof message.error.message === "string" &&
+        message.error.message.length >= 1 &&
+        message.error.message.length <= 500
+      );
+    case MessageType.CANCEL_SELECTION:
+      return hasOnlyKeys(message, new Set(["type", "requestId"]));
+    default:
+      return false;
+  }
 }
 
 export function validateProviderTestMessage(message) {

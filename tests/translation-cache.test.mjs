@@ -5,6 +5,7 @@ import {
   TRANSLATION_CACHE_PREFIX,
   TRANSLATION_CACHE_VERSION,
   createTranslationCacheKey,
+  createSelectionTranslationCacheKey,
   createTranslationCacheRepository,
   hashTranslationSource
 } from "../extension/src/shared/translation-cache.mjs";
@@ -189,4 +190,65 @@ test("rejects incomplete, unknown, or unsafe cache metadata", async () => {
     }),
     /fingerprint/
   );
+});
+
+test("isolates selection cache by provider, prompt, selected text, and context", async () => {
+  const selectionContext = {
+    providerId: "provider-1",
+    model: "model-a",
+    targetLanguage: "zh-CN",
+    promptVersion: "selection-prompt-v1",
+    responseSchemaVersion: "selection-text-v1",
+    selectionText: "agent",
+    contextText: "The agent keeps context."
+  };
+  const key = await createSelectionTranslationCacheKey(selectionContext);
+  assert.equal(key.startsWith(TRANSLATION_CACHE_PREFIX), true);
+  assert.equal(key.includes("agent"), false);
+  assert.equal(key.includes("The agent keeps context"), false);
+
+  for (const [name, value] of [
+    ["providerId", "provider-2"],
+    ["model", "model-b"],
+    ["targetLanguage", "ja"],
+    ["promptVersion", "selection-prompt-v2"],
+    ["responseSchemaVersion", "selection-text-v2"],
+    ["selectionText", "runtime"],
+    ["contextText", "A legal agent represents the client."]
+  ]) {
+    assert.notEqual(
+      await createSelectionTranslationCacheKey({
+        ...selectionContext,
+        [name]: value
+      }),
+      key
+    );
+  }
+});
+
+test("normalizes selection cache whitespace without storing source plaintext", async () => {
+  const base = {
+    providerId: "provider-1",
+    model: "model-a",
+    targetLanguage: "zh-CN",
+    promptVersion: "selection-prompt-v1",
+    responseSchemaVersion: "selection-text-v1",
+    selectionText: "agent context",
+    contextText: "The agent keeps context."
+  };
+  assert.equal(
+    await createSelectionTranslationCacheKey(base),
+    await createSelectionTranslationCacheKey({
+      ...base,
+      selectionText: " agent\n context ",
+      contextText: " The agent   keeps\ncontext. "
+    })
+  );
+
+  const storage = createMemoryStorage();
+  const repository = createTranslationCacheRepository(storage);
+  const key = await createSelectionTranslationCacheKey(base);
+  await repository.setVerified(key, "智能体上下文", { sessionId: "selection-1" });
+  assert.equal(JSON.stringify(storage.data).includes(base.selectionText), false);
+  assert.equal(JSON.stringify(storage.data).includes(base.contextText), false);
 });

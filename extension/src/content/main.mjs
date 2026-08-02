@@ -38,6 +38,7 @@ import {
   createTranslationAppearanceController,
   loadInitialTranslationAppearance
 } from "./translation-appearance.mjs";
+import { installMagicLensController } from "./magic-lens-controller.mjs";
 
 let currentSession = null;
 let mutationTimer = null;
@@ -46,6 +47,7 @@ let floatingController = null;
 let pendingStartCommand = null;
 let currentScope = "main-content";
 let translationAppearance = null;
+let magicLensController = null;
 
 const MAIN_CONTENT_SELECTOR = "article,main,[role='main']";
 const BACKGROUND_DISCOVERY_CHUNK_SIZE = 40;
@@ -1057,8 +1059,14 @@ export function installContentController() {
       return { ok: true };
     }
   });
+  magicLensController = installMagicLensController();
   notifyStatus();
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    const magicLensResponse = magicLensController?.handleMessage(message);
+    if (magicLensResponse) {
+      sendResponse(magicLensResponse);
+      return false;
+    }
     if (message?.type === MessageType.APPEARANCE_PREFERENCE_UPDATED) {
       if (validateAppearancePreferenceMessage(message)) {
         translationAppearance.update(message.preference);

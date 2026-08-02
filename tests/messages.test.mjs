@@ -9,6 +9,7 @@ import {
   validateCancelMessage,
   validateGetAppearancePreferenceMessage,
   validateProviderTestMessage,
+  validateSelectionMessage,
   validateTranslationBatchMessage,
   validateTranslationScope,
   validateTranslationStreamMessage
@@ -359,5 +360,63 @@ test("rejects format metadata containing DOM, URL, style, or request overrides",
       validateTranslationStreamMessage({ ...base, format: invalidFormat }),
       false
     );
+  }
+});
+
+test("validates bounded selection start, stream, completion, error, and cancel messages", () => {
+  const messages = [
+    {
+      type: MessageType.TRANSLATE_SELECTION_START,
+      requestId: "selection-1",
+      targetLanguage: "简体中文",
+      selectionText: "agent",
+      contextText: "The agent keeps persistent context.",
+      bypassCache: false
+    },
+    {
+      type: MessageType.TRANSLATE_SELECTION_CHUNK,
+      requestId: "selection-1",
+      chunk: "智能"
+    },
+    {
+      type: MessageType.TRANSLATE_SELECTION_COMPLETE,
+      requestId: "selection-1",
+      text: "智能体",
+      cacheHit: false
+    },
+    {
+      type: MessageType.TRANSLATE_SELECTION_ERROR,
+      requestId: "selection-1",
+      error: { code: "NETWORK_ERROR", message: "网络错误" }
+    },
+    {
+      type: MessageType.CANCEL_SELECTION,
+      requestId: "selection-1"
+    }
+  ];
+  for (const message of messages) {
+    assert.equal(validateSelectionMessage(message), true, message.type);
+  }
+});
+
+test("rejects oversized, malformed, and privileged selection request fields", () => {
+  const base = {
+    type: MessageType.TRANSLATE_SELECTION_START,
+    requestId: "selection-1",
+    targetLanguage: "简体中文",
+    selectionText: "agent",
+    contextText: "The agent keeps persistent context."
+  };
+  for (const invalid of [
+    { ...base, selectionText: "x".repeat(2_001) },
+    { ...base, contextText: "x".repeat(4_001) },
+    { ...base, bypassCache: "yes" },
+    { ...base, providerId: "private-provider" },
+    { ...base, url: "https://evil.test" },
+    { ...base, model: "untrusted" },
+    { ...base, headers: { Authorization: "secret" } },
+    { ...base, concurrency: 99 }
+  ]) {
+    assert.equal(validateSelectionMessage(invalid), false);
   }
 });

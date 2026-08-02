@@ -147,6 +147,40 @@ test("service worker composes trusted handlers without exposing provider fields"
       ),
       { ok: true }
     );
+    assert.equal(
+      (
+        await handleMessage(
+          {
+            type: MessageType.TRANSLATE_SELECTION_START,
+            requestId: "selection-1",
+            targetLanguage: "中文",
+            selectionText: "agent",
+            contextText: "The agent acts.",
+            url: "https://evil.example"
+          },
+          {
+            id: "extension-id",
+            url: "https://example.com/article",
+            tab: { id: 1, url: "https://example.com/article" }
+          }
+        )
+      ).error.code,
+      "INVALID_MESSAGE"
+    );
+    assert.deepEqual(
+      await handleMessage(
+        {
+          type: MessageType.CANCEL_SELECTION,
+          requestId: "selection-1"
+        },
+        {
+          id: "extension-id",
+          url: "https://example.com/article",
+          tab: { id: 1, url: "https://example.com/article" }
+        }
+      ),
+      { ok: true }
+    );
     assert.deepEqual(
       await handleMessage(
         { type: MessageType.GET_APPEARANCE_PREFERENCE },
