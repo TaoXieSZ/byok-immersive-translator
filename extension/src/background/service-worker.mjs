@@ -8,6 +8,7 @@ import {
   validateCancelMessage,
   validateProviderTestMessage,
   validateSelectionMessage,
+  validateTermExplanationMessage,
   validateTranslationBatchMessage,
   validateTranslationStreamMessage
 } from "../shared/messages.mjs";
@@ -169,6 +170,20 @@ async function handleSelectionTranslation(message, sender) {
   return translationService.translateSelection(message, sender.tab.id);
 }
 
+async function handleTermExplanation(message, sender) {
+  if (
+    !isWebContentScriptSender(sender) ||
+    message?.type !== MessageType.EXPLAIN_TERM ||
+    !validateTermExplanationMessage(message)
+  ) {
+    return publicError(
+      ErrorCode.INVALID_MESSAGE,
+      "术语解释请求包含无效或越权字段。"
+    );
+  }
+  return translationService.explainTerm(message);
+}
+
 export async function handleMessage(message, sender) {
   switch (message?.type) {
     case MessageType.GET_APPEARANCE_PREFERENCE:
@@ -186,6 +201,17 @@ export async function handleMessage(message, sender) {
       return handleTranslationStream(message, sender);
     case MessageType.TRANSLATE_SELECTION_START:
       return handleSelectionTranslation(message, sender);
+    case MessageType.EXPLAIN_TERM:
+      return handleTermExplanation(message, sender);
+    case MessageType.CANCEL_TERM_EXPLANATION:
+      if (
+        !isWebContentScriptSender(sender) ||
+        !validateTermExplanationMessage(message)
+      ) {
+        return publicError(ErrorCode.INVALID_MESSAGE, "无效的术语解释取消请求。");
+      }
+      translationService.cancelTermExplanation(message.requestId);
+      return { ok: true };
     case MessageType.CANCEL_SELECTION:
       if (!isWebContentScriptSender(sender) || !validateSelectionMessage(message)) {
         return publicError(ErrorCode.INVALID_MESSAGE, "无效的选区取消请求。");

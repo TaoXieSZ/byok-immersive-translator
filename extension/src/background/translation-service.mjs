@@ -7,6 +7,7 @@ import {
   normalizeProviderError,
   requestSelectionTranslation,
   requestSingleTranslation,
+  requestTermExplanation,
   requestTranslations
 } from "../shared/openai-adapter.mjs";
 import { resolveProviderProfile } from "../shared/provider-config.mjs";
@@ -100,6 +101,7 @@ export function createTranslationService({
   requestBatch = requestTranslations,
   requestSingle = requestSingleTranslation,
   requestSelection = requestSelectionTranslation,
+  requestTerm = requestTermExplanation,
   sendToTab = async () => {},
   timelineFactory = createPerformanceTimeline
 }) {
@@ -107,6 +109,7 @@ export function createTranslationService({
     throw new Error("Translation service dependencies are required.");
   }
   const selectionTokens = new Map();
+  const termTokens = new Map();
 
   async function selectedProvider() {
     return repository.getSelectedProvider();
@@ -477,12 +480,58 @@ export function createTranslationService({
     }
   }
 
+  async function explainTerm(message) {
+    const provider = await selectedProvider();
+    if (!provider) {
+      return publicError(ErrorCode.NO_PROVIDER, "请先配置并选择翻译服务。");
+    }
+    const token = Symbol(message.requestId);
+    termTokens.set(message.requestId, token);
+    const isCurrent = () => termTokens.get(message.requestId) === token;
+    const profile = resolveProviderProfile(provider);
+    try {
+      const explanation = await scheduler.run({
+        providerId: provider.id,
+        profile,
+        sessionId: message.requestId,
+        maxRetries: 0,
+        operation: ({ signal }) =>
+          requestTerm(
+            provider,
+            message.term,
+            message.contextText,
+            message.targetLanguage,
+            { signal }
+          )
+      });
+      if (!isCurrent()) {
+        return publicError(ErrorCode.REQUEST_CANCELLED, "术语解释请求已取消。");
+      }
+      termTokens.delete(message.requestId);
+      return {
+        ok: true,
+        requestId: message.requestId,
+        term: message.term,
+        explanation
+      };
+    } catch (error) {
+      const normalized = normalizeProviderError(error);
+      if (isCurrent()) termTokens.delete(message.requestId);
+      return publicError(normalized.code, normalized.message);
+    }
+  }
+
   return {
     translateBatch,
     translateStream,
     translateSelection,
+    explainTerm,
     cancelSelection(requestId) {
       selectionTokens.delete(requestId);
+      return scheduler.cancelSession(requestId);
+    },
+    cancelTermExplanation(requestId) {
+      termTokens.delete(requestId);
       return scheduler.cancelSession(requestId);
     },
     cancelSession(sessionId) {

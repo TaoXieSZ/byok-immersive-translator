@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   MessageType,
+  validateTermExplanationMessage,
   TranslationScope,
   isPageMessage,
   isTrustedExtensionPageSender,
@@ -418,5 +419,32 @@ test("rejects oversized, malformed, and privileged selection request fields", ()
     { ...base, concurrency: 99 }
   ]) {
     assert.equal(validateSelectionMessage(invalid), false);
+  }
+});
+
+test("accepts only bounded term explanation and cancellation messages", () => {
+  const request = {
+    type: MessageType.EXPLAIN_TERM,
+    requestId: "term-1",
+    term: "REPL",
+    contextText: "The REPL pulls messages from the query loop.",
+    targetLanguage: "简体中文"
+  };
+  assert.equal(validateTermExplanationMessage(request), true);
+  assert.equal(
+    validateTermExplanationMessage({
+      type: MessageType.CANCEL_TERM_EXPLANATION,
+      requestId: "term-1"
+    }),
+    true
+  );
+  for (const invalid of [
+    { ...request, term: "R" },
+    { ...request, term: "x".repeat(61) },
+    { ...request, contextText: "x".repeat(4_001) },
+    { ...request, url: "https://evil.test" },
+    { ...request, apiKey: "secret" }
+  ]) {
+    assert.equal(validateTermExplanationMessage(invalid), false);
   }
 });

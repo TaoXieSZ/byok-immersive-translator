@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildSingleTranslationRequest,
   buildSelectionTranslationRequest,
+  buildTermExplanationRequest,
   buildTranslationRequest,
   normalizeProviderError,
   parseRetryAfter,
@@ -10,6 +11,7 @@ import {
   parseTranslationResults,
   requestSingleTranslation,
   requestSelectionTranslation,
+  requestTermExplanation,
   requestTranslations
 } from "../extension/src/shared/openai-adapter.mjs";
 import {
@@ -234,6 +236,63 @@ test("builds a selection request that treats context only as untrusted disambigu
     }
   );
   assert.doesNotMatch(request.init.body, /document|outerHTML|cookie/iu);
+});
+
+test("builds a concise term explanation request with untrusted context", () => {
+  const request = buildTermExplanationRequest(
+    provider,
+    "REPL",
+    "The REPL pulls messages from the query loop.",
+    "简体中文"
+  );
+  const body = JSON.parse(request.init.body);
+  assert.equal(body.stream, false);
+  assert.equal(body.temperature, 0.1);
+  assert.match(body.messages[0].content, /full form/iu);
+  assert.match(body.messages[0].content, /untrusted reference/iu);
+  assert.deepEqual(JSON.parse(body.messages[1].content.split("\n\n").at(-1)), {
+    term: "REPL",
+    context_text: "The REPL pulls messages from the query loop."
+  });
+  assert.doesNotMatch(request.init.body, /document|outerHTML|cookie/iu);
+});
+
+test("returns a bounded plain-text term explanation", async () => {
+  assert.equal(
+    await requestTermExplanation(
+      provider,
+      "REPL",
+      "The REPL pulls messages from the query loop.",
+      "中文",
+      {
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content:
+                    "REPL 是 Read-Eval-Print Loop（读取-求值-输出循环），用于交互式执行代码。"
+                }
+              }
+            ]
+          })
+        })
+      }
+    ),
+    "REPL 是 Read-Eval-Print Loop（读取-求值-输出循环），用于交互式执行代码。"
+  );
+  await assert.rejects(
+    requestTermExplanation(provider, "REPL", "context", "中文", {
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "x".repeat(2_001) } }]
+        })
+      })
+    }),
+    (error) => error.code === "INVALID_RESPONSE"
+  );
 });
 
 test("supports streaming and non-streaming selection translations", async () => {

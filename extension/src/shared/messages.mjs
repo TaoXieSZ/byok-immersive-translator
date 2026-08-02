@@ -25,6 +25,8 @@ export const MessageType = Object.freeze({
   TRANSLATE_SELECTION_COMPLETE: "selection:translate:complete",
   TRANSLATE_SELECTION_ERROR: "selection:translate:error",
   CANCEL_SELECTION: "selection:translate:cancel",
+  EXPLAIN_TERM: "term:explain",
+  CANCEL_TERM_EXPLANATION: "term:explain:cancel",
   CANCEL_SESSION: "translation:cancel",
   GET_PAGE_STATUS: "page:get-status",
   START_TRANSLATION: "page:start",
@@ -407,6 +409,42 @@ export function validateSelectionMessage(message) {
     default:
       return false;
   }
+}
+
+export function validateTermExplanationMessage(message) {
+  if (
+    !isPlainObject(message) ||
+    ![MessageType.EXPLAIN_TERM, MessageType.CANCEL_TERM_EXPLANATION].includes(
+      message.type
+    ) ||
+    !isSafeIdentifier(message.requestId)
+  ) {
+    return false;
+  }
+  if (message.type === MessageType.CANCEL_TERM_EXPLANATION) {
+    return hasOnlyKeys(message, new Set(["type", "requestId"]));
+  }
+  return (
+    hasOnlyKeys(
+      message,
+      new Set([
+        "type",
+        "requestId",
+        "term",
+        "contextText",
+        "targetLanguage"
+      ])
+    ) &&
+    typeof message.term === "string" &&
+    message.term.length >= 2 &&
+    message.term.length <= 60 &&
+    typeof message.contextText === "string" &&
+    message.contextText.length >= 1 &&
+    message.contextText.length <= 4_000 &&
+    typeof message.targetLanguage === "string" &&
+    message.targetLanguage.length >= 1 &&
+    message.targetLanguage.length <= 80
+  );
 }
 
 export function validateProviderTestMessage(message) {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   MAGIC_LENS_TEMPLATE,
   MagicLensStatus,
+  TermExplanationStatus,
   computeMagicLensPosition,
   createFrameScheduler,
   createInitialMagicLensState,
@@ -11,6 +12,7 @@ import {
   formatBilingualCopy,
   isMagicLensDismissKey,
   reduceMagicLensState,
+  shouldFollowMagicLensStream,
   shouldEvaluateMagicLensSelection
 } from "../extension/src/content/magic-lens-controller.mjs";
 import { MessageType } from "../extension/src/shared/messages.mjs";
@@ -36,8 +38,8 @@ function createFakeView() {
     on(action, handler) {
       handlers.set(action, handler);
     },
-    fire(action) {
-      return handlers.get(action)?.();
+    fire(action, ...args) {
+      return handlers.get(action)?.(...args);
     },
     render(state) {
       renders.push(structuredClone(state));
@@ -83,6 +85,19 @@ test("magic lens reducer covers hidden, trigger, loading, streaming, complete, a
   assert.equal(state.translation, "智能体");
   state = reduceMagicLensState(state, { type: "complete", text: "智能体" });
   assert.equal(state.status, MagicLensStatus.COMPLETE);
+  state = reduceMagicLensState(state, {
+    type: "term-start",
+    requestId: "term-1",
+    term: "REPL"
+  });
+  assert.equal(state.termStatus, TermExplanationStatus.LOADING);
+  state = reduceMagicLensState(state, {
+    type: "term-complete",
+    term: "REPL",
+    explanation: "Read-Eval-Print Loop。"
+  });
+  assert.equal(state.termStatus, TermExplanationStatus.COMPLETE);
+  assert.equal(state.termExplanation, "Read-Eval-Print Loop。");
   state = reduceMagicLensState(state, {
     type: "error",
     error: { code: "NETWORK_ERROR", message: "网络错误" }
@@ -229,6 +244,84 @@ test("retranslation bypasses cache, copy stays visible on failure, and close can
   assert.equal(controller.getState().status, MagicLensStatus.HIDDEN);
 });
 
+test("detects terms locally and explains one only after the reader asks", async () => {
+  const view = createFakeView();
+  const messages = [];
+  const runtime = {
+    messages,
+    async sendMessage(message) {
+      messages.push(structuredClone(message));
+      if (message.type === MessageType.GET_PROVIDER_STATUS) {
+        return {
+          ok: true,
+          configured: true,
+          provider: {
+            name: "DeepSeek",
+            model: "deepseek-chat",
+            targetLanguage: "简体中文"
+          }
+        };
+      }
+      if (message.type === MessageType.EXPLAIN_TERM) {
+        return {
+          ok: true,
+          requestId: message.requestId,
+          term: message.term,
+          explanation:
+            "REPL 是 Read-Eval-Print Loop（读取-求值-输出循环），用于交互式运行代码。"
+        };
+      }
+      return { ok: true };
+    },
+    async openOptionsPage() {}
+  };
+  let requestNumber = 0;
+  const controller = createMagicLensController({
+    runtime,
+    view,
+    clipboard: { async writeText() {} },
+    createRequestId: () => `request-${++requestNumber}`
+  });
+  controller.showSnapshot({
+    ...snapshot,
+    selectionText: "The REPL pulls messages from the query loop.",
+    contextText: "The REPL pulls messages from the query loop."
+  });
+  assert.deepEqual(controller.getState().terms, ["REPL"]);
+  assert.equal(
+    messages.some(({ type }) => type === MessageType.EXPLAIN_TERM),
+    false
+  );
+
+  await controller.start();
+  controller.handleMessage({
+    type: MessageType.TRANSLATE_SELECTION_COMPLETE,
+    requestId: "request-1",
+    text: "REPL 从查询循环中拉取消息。"
+  });
+  const first = await controller.explainTerm("REPL");
+  assert.equal(first.ok, true);
+  assert.equal(controller.getState().termStatus, TermExplanationStatus.COMPLETE);
+  assert.match(controller.getState().termExplanation, /Read-Eval-Print Loop/u);
+  assert.deepEqual(
+    messages.find(({ type }) => type === MessageType.EXPLAIN_TERM),
+    {
+      type: MessageType.EXPLAIN_TERM,
+      requestId: "request-2",
+      term: "REPL",
+      contextText: "The REPL pulls messages from the query loop.",
+      targetLanguage: "简体中文"
+    }
+  );
+
+  const second = await controller.explainTerm("REPL");
+  assert.equal(second.cacheHit, true);
+  assert.equal(
+    messages.filter(({ type }) => type === MessageType.EXPLAIN_TERM).length,
+    1
+  );
+});
+
 test("keeps trigger and card within viewport and formats bilingual copy without context", () => {
   assert.deepEqual(
     computeMagicLensPosition(
@@ -297,9 +390,33 @@ test("locks interaction budgets and coalesces repeated positioning into one fram
   assert.equal(frames.length, 1);
 });
 
+test("long translations follow the stream only while the reader stays near the end", () => {
+  assert.equal(
+    shouldFollowMagicLensStream({
+      scrollHeight: 500,
+      scrollTop: 276,
+      clientHeight: 200
+    }),
+    true
+  );
+  assert.equal(
+    shouldFollowMagicLensStream({
+      scrollHeight: 500,
+      scrollTop: 200,
+      clientHeight: 200
+    }),
+    false
+  );
+});
+
 test("template uses the A3 mark, native controls, visible focus, and live status", () => {
   assert.match(MAGIC_LENS_TEMPLATE, /data-icon="floating-a3"/u);
   assert.match(MAGIC_LENS_TEMPLATE, />好<\/text>/u);
+  assert.match(MAGIC_LENS_TEMPLATE, /data-field="source"/u);
+  assert.match(MAGIC_LENS_TEMPLATE, /max-height: min\(560px, calc\(100vh - 24px\)\)/u);
+  assert.match(MAGIC_LENS_TEMPLATE, /overflow-y: auto/u);
+  assert.match(MAGIC_LENS_TEMPLATE, /术语·点击解释/u);
+  assert.match(MAGIC_LENS_TEMPLATE, /data-field="terms"/u);
   assert.match(MAGIC_LENS_TEMPLATE, /role="dialog"/u);
   assert.match(MAGIC_LENS_TEMPLATE, /aria-live="polite"/u);
   assert.match(MAGIC_LENS_TEMPLATE, /focus-visible/u);

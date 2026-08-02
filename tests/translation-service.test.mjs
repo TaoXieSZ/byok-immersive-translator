@@ -60,6 +60,10 @@ function createService(overrides = {}) {
       options.onChunk?.("体");
       return "智能体";
     },
+    requestTerm: async (_provider, term, contextText, targetLanguage) => {
+      calls.push(["term", term, contextText, targetLanguage]);
+      return `${term} 是一个与当前段落相关的技术术语。`;
+    },
     sendToTab: async (tabId, message) => events.push({ tabId, message }),
     timelineFactory: () => ({ mark() {} }),
     ...overrides
@@ -349,4 +353,29 @@ test("selection translation reports missing provider without sending page data",
   );
   assert.equal(result.error.code, "NO_PROVIDER");
   assert.deepEqual(events, []);
+});
+
+test("term explanation uses the selected provider only after an explicit request", async () => {
+  const { service, calls } = createService();
+  const result = await service.explainTerm({
+    requestId: "term-1",
+    term: "REPL",
+    contextText: "The REPL pulls messages from the query loop.",
+    targetLanguage: "简体中文"
+  });
+  assert.deepEqual(result, {
+    ok: true,
+    requestId: "term-1",
+    term: "REPL",
+    explanation: "REPL 是一个与当前段落相关的技术术语。"
+  });
+  assert.deepEqual(calls, [
+    [
+      "term",
+      "REPL",
+      "The REPL pulls messages from the query loop.",
+      "简体中文"
+    ]
+  ]);
+  assert.equal(service.cancelTermExplanation("term-1"), 1);
 });

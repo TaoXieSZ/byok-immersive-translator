@@ -151,6 +151,40 @@ test("service worker composes trusted handlers without exposing provider fields"
       (
         await handleMessage(
           {
+            type: MessageType.EXPLAIN_TERM,
+            requestId: "term-1",
+            term: "REPL",
+            contextText: "The REPL pulls messages.",
+            targetLanguage: "简体中文",
+            url: "https://evil.example"
+          },
+          {
+            id: "extension-id",
+            url: "https://example.com/article",
+            tab: { id: 1, url: "https://example.com/article" }
+          }
+        )
+      ).error.code,
+      "INVALID_MESSAGE"
+    );
+    assert.deepEqual(
+      await handleMessage(
+        {
+          type: MessageType.CANCEL_TERM_EXPLANATION,
+          requestId: "term-1"
+        },
+        {
+          id: "extension-id",
+          url: "https://example.com/article",
+          tab: { id: 1, url: "https://example.com/article" }
+        }
+      ),
+      { ok: true }
+    );
+    assert.equal(
+      (
+        await handleMessage(
+          {
             type: MessageType.TRANSLATE_SELECTION_START,
             requestId: "selection-1",
             targetLanguage: "中文",
