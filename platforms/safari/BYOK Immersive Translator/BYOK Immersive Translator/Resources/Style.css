@@ -1,0 +1,69 @@
+* {
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    cursor: default;
+}
+
+:root {
+    color-scheme: light dark;
+
+    --spacing: 20px;
+    --ink: #16283b;
+    --paper: #f4efe6;
+    --accent: #d65338;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+
+    gap: var(--spacing);
+    margin: 0 calc(var(--spacing) * 2);
+    height: 100%;
+
+    font: -apple-system-short-body;
+    text-align: center;
+    color: var(--ink);
+    background: radial-gradient(circle at top, rgba(214, 83, 56, .14), transparent 45%), var(--paper);
+}
+
+h1 {
+    margin: 0;
+    font: 700 28px/1.2 ui-serif, "Songti SC", serif;
+    letter-spacing: -.03em;
+}
+
+p {
+    max-width: 420px;
+    margin: 0;
+    line-height: 1.65;
+}
+
+body:not(.state-on, .state-off) :is(.state-on, .state-off) {
+    display: none;
+}
+
+body.state-on :is(.state-off, .state-unknown) {
+    display: none;
+}
+
+body.state-off :is(.state-on, .state-unknown) {
+    display: none;
+}
+
+button {
+    border: 0;
+    border-radius: 9px;
+    padding: 11px 16px;
+    background: var(--ink);
+    color: white;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+}

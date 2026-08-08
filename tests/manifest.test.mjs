@@ -15,6 +15,14 @@ test("declares optional page access without requiring broad host access", () => 
   assert.equal(manifest.permissions.includes("activeTab"), true);
 });
 
+test("declares the Safari 16.4 compatibility floor", () => {
+  assert.deepEqual(manifest.browser_specific_settings, {
+    safari: {
+      strict_min_version: "16.4"
+    }
+  });
+});
+
 test("declares translation commands with suggested shortcuts", () => {
   assert.deepEqual(manifest.commands, {
     "toggle-translation": {
