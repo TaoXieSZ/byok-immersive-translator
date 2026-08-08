@@ -9,10 +9,17 @@ import {
   AppearanceMode,
   validateAppearancePreference
 } from "./appearance-preferences.mjs";
+import {
+  FLOATING_CONTROL_SCHEMA_VERSION,
+  FloatingControlEdge,
+  validateFloatingControlPreference
+} from "./floating-control-preferences.mjs";
 
 export const MessageType = Object.freeze({
   GET_APPEARANCE_PREFERENCE: "appearance:get-preference",
   APPEARANCE_PREFERENCE_UPDATED: "appearance:preference-updated",
+  GET_FLOATING_CONTROL_PREFERENCE: "floating-control:get-preference",
+  SAVE_FLOATING_CONTROL_PREFERENCE: "floating-control:save-preference",
   GET_PROVIDER_STATUS: "provider:get-status",
   TEST_PROVIDER: "provider:test",
   TRANSLATE_BATCH: "translation:batch",
@@ -89,6 +96,12 @@ const PUBLIC_APPEARANCE_KEYS = new Set([
   "mode",
   "customFamilies"
 ]);
+const PUBLIC_FLOATING_CONTROL_KEYS = new Set([
+  "version",
+  "edge",
+  "verticalRatio"
+]);
+const FLOATING_CONTROL_EDGES = new Set(Object.values(FloatingControlEdge));
 const REMOTE_FORMAT_KEYS = new Set(["version", "markIds", "fingerprint"]);
 const SAFE_FORMAT_FINGERPRINT = /^fmt1:[a-f0-9]{16}$/u;
 const SAFE_MARK_ID = /^m\d{1,3}$/u;
@@ -186,6 +199,39 @@ export function validateAppearancePreferenceMessage(message) {
       preference.customFamilies.every(
         (family, index) => family === message.preference.customFamilies[index]
       )
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function validateGetFloatingControlPreferenceMessage(message) {
+  return (
+    isPlainObject(message) &&
+    hasOnlyKeys(message, new Set(["type"])) &&
+    message.type === MessageType.GET_FLOATING_CONTROL_PREFERENCE
+  );
+}
+
+export function validateSaveFloatingControlPreferenceMessage(message) {
+  if (
+    !isPlainObject(message) ||
+    !hasOnlyKeys(message, new Set(["type", "preference"])) ||
+    message.type !== MessageType.SAVE_FLOATING_CONTROL_PREFERENCE ||
+    !isPlainObject(message.preference) ||
+    !hasOnlyKeys(message.preference, PUBLIC_FLOATING_CONTROL_KEYS) ||
+    message.preference.version !== FLOATING_CONTROL_SCHEMA_VERSION ||
+    !FLOATING_CONTROL_EDGES.has(message.preference.edge)
+  ) {
+    return false;
+  }
+
+  try {
+    const preference = validateFloatingControlPreference(message.preference);
+    return (
+      preference.version === message.preference.version &&
+      preference.edge === message.preference.edge &&
+      preference.verticalRatio === message.preference.verticalRatio
     );
   } catch {
     return false;

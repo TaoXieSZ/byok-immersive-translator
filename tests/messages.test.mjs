@@ -9,7 +9,9 @@ import {
   validateAppearancePreferenceMessage,
   validateCancelMessage,
   validateGetAppearancePreferenceMessage,
+  validateGetFloatingControlPreferenceMessage,
   validateProviderTestMessage,
+  validateSaveFloatingControlPreferenceMessage,
   validateSelectionMessage,
   validateTranslationBatchMessage,
   validateTranslationScope,
@@ -70,6 +72,42 @@ test("rejects appearance messages containing CSS, URLs, paths, or extra fields",
     validateAppearancePreferenceMessage({ ...base, model: "untrusted" }),
     false
   );
+});
+
+test("accepts only bounded floating-control preference messages", () => {
+  assert.equal(
+    validateGetFloatingControlPreferenceMessage({
+      type: MessageType.GET_FLOATING_CONTROL_PREFERENCE
+    }),
+    true
+  );
+  assert.equal(
+    validateSaveFloatingControlPreferenceMessage({
+      type: MessageType.SAVE_FLOATING_CONTROL_PREFERENCE,
+      preference: { version: 1, edge: "left", verticalRatio: 0.4 }
+    }),
+    true
+  );
+
+  for (const preference of [
+    { version: 1, edge: "center", verticalRatio: 0.4 },
+    { version: 1, edge: "left", verticalRatio: -0.1 },
+    { version: 1, edge: "right", verticalRatio: 1.1 },
+    {
+      version: 1,
+      edge: "right",
+      verticalRatio: 0.5,
+      url: "https://private.example"
+    }
+  ]) {
+    assert.equal(
+      validateSaveFloatingControlPreferenceMessage({
+        type: MessageType.SAVE_FLOATING_CONTROL_PREFERENCE,
+        preference
+      }),
+      false
+    );
+  }
 });
 
 test("accepts bounded translation messages", () => {

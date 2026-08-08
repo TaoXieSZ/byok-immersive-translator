@@ -5,8 +5,10 @@ import {
   isTrustedExtensionPageSender,
   publicError,
   validateGetAppearancePreferenceMessage,
+  validateGetFloatingControlPreferenceMessage,
   validateCancelMessage,
   validateProviderTestMessage,
+  validateSaveFloatingControlPreferenceMessage,
   validateSelectionMessage,
   validateTermExplanationMessage,
   validateTranslationBatchMessage,
@@ -26,6 +28,10 @@ import {
   toPublicAppearancePreference
 } from "../shared/appearance-preferences.mjs";
 import {
+  createChromeFloatingControlRepository,
+  toPublicFloatingControlPreference
+} from "../shared/floating-control-preferences.mjs";
+import {
   resolveProviderProfile,
   toPublicProviderStatus,
   validateProviderDraft
@@ -42,6 +48,7 @@ import { createTranslationService } from "./translation-service.mjs";
 
 const repository = createChromeProviderRepository();
 const appearanceRepository = createChromeAppearanceRepository();
+const floatingControlRepository = createChromeFloatingControlRepository();
 const scheduler = createAdaptiveScheduler();
 const cache = createChromeTranslationCacheRepository();
 
@@ -103,6 +110,29 @@ async function handleAppearancePreference(message, sender) {
       await appearanceRepository.getPreference()
     )
   };
+}
+
+async function handleFloatingControlPreference(message, sender) {
+  if (!isWebContentScriptSender(sender)) {
+    return publicError(ErrorCode.INVALID_MESSAGE, "无效的悬浮按钮位置请求。");
+  }
+  if (validateGetFloatingControlPreferenceMessage(message)) {
+    return {
+      ok: true,
+      preference: toPublicFloatingControlPreference(
+        await floatingControlRepository.getPreference()
+      )
+    };
+  }
+  if (validateSaveFloatingControlPreferenceMessage(message)) {
+    return {
+      ok: true,
+      preference: toPublicFloatingControlPreference(
+        await floatingControlRepository.savePreference(message.preference)
+      )
+    };
+  }
+  return publicError(ErrorCode.INVALID_MESSAGE, "无效的悬浮按钮位置请求。");
 }
 
 async function handleProviderTest(message, sender) {
@@ -188,6 +218,9 @@ export async function handleMessage(message, sender) {
   switch (message?.type) {
     case MessageType.GET_APPEARANCE_PREFERENCE:
       return handleAppearancePreference(message, sender);
+    case MessageType.GET_FLOATING_CONTROL_PREFERENCE:
+    case MessageType.SAVE_FLOATING_CONTROL_PREFERENCE:
+      return handleFloatingControlPreference(message, sender);
     case MessageType.GET_PROVIDER_STATUS:
       if (sender.id !== chrome.runtime.id) {
         return publicError(ErrorCode.INVALID_MESSAGE, "无效的状态请求。");

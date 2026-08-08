@@ -1,3 +1,10 @@
+import {
+  DEFAULT_FLOATING_CONTROL_PREFERENCE,
+  FLOATING_CONTROL_SCHEMA_VERSION,
+  FloatingControlEdge,
+  normalizeFloatingControlPreference
+} from "../shared/floating-control-preferences.mjs";
+
 export const ControllerStatus = Object.freeze({
   IDLE: "idle",
   STARTING: "starting",
@@ -6,6 +13,144 @@ export const ControllerStatus = Object.freeze({
   COMPLETED: "completed",
   COMPLETED_WITH_ERRORS: "completed-with-errors"
 });
+
+export const FLOATING_CONTROL_SIZE = 58;
+export const FLOATING_CONTROL_DRAG_THRESHOLD = 6;
+export const FLOATING_CONTROL_CLICK_SUPPRESSION_MS = 400;
+const FLOATING_CONTROL_MARGIN = 20;
+const FLOATING_CONTROL_NARROW_MARGIN = 12;
+const FLOATING_CONTROL_KEYBOARD_STEP = 40;
+const FLOATING_CONTROL_PANEL_GAP = 12;
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
+}
+
+function getFloatingControlMargin(viewportWidth) {
+  return viewportWidth <= 520
+    ? FLOATING_CONTROL_NARROW_MARGIN
+    : FLOATING_CONTROL_MARGIN;
+}
+
+function getAvailableVerticalSpace(viewportHeight, size, margin) {
+  return Math.max(0, viewportHeight - size - margin * 2);
+}
+
+export function isLauncherDragIntent(
+  start,
+  current,
+  threshold = FLOATING_CONTROL_DRAG_THRESHOLD
+) {
+  if (!start || !current || !Number.isFinite(threshold) || threshold < 0) {
+    return false;
+  }
+  return Math.hypot(current.x - start.x, current.y - start.y) > threshold;
+}
+
+export function shouldSuppressLauncherClickAfterPointer(pointerState) {
+  return pointerState?.moved === true;
+}
+
+export function resolveFloatingControlLayout(
+  preference,
+  viewport,
+  { size = FLOATING_CONTROL_SIZE } = {}
+) {
+  const normalized = normalizeFloatingControlPreference(preference);
+  const width = Math.max(0, Number(viewport?.width) || 0);
+  const height = Math.max(0, Number(viewport?.height) || 0);
+  const margin = getFloatingControlMargin(width);
+  const available = getAvailableVerticalSpace(height, size, margin);
+  return {
+    edge: normalized.edge,
+    top: Math.round(margin + normalized.verticalRatio * available),
+    margin
+  };
+}
+
+export function resolveFloatingPanelLayout(
+  controlRect,
+  viewportHeight,
+  {
+    gap = FLOATING_CONTROL_PANEL_GAP,
+    margin = FLOATING_CONTROL_NARROW_MARGIN
+  } = {}
+) {
+  const height = Math.max(0, Number(viewportHeight) || 0);
+  const top = clamp(Number(controlRect?.top) || 0, 0, height);
+  const bottom = clamp(Number(controlRect?.bottom) || top, top, height);
+  const spaceAbove = Math.max(0, top - gap - margin);
+  const spaceBelow = Math.max(0, height - bottom - gap - margin);
+  const placement = spaceBelow > spaceAbove ? "below" : "above";
+  return {
+    placement,
+    maxHeight: Math.floor(
+      placement === "below" ? spaceBelow : spaceAbove
+    )
+  };
+}
+
+export function computeDockedFloatingControlPreference(
+  point,
+  viewport,
+  { size = FLOATING_CONTROL_SIZE, pointerOffsetY = size / 2 } = {}
+) {
+  const width = Math.max(0, Number(viewport?.width) || 0);
+  const height = Math.max(0, Number(viewport?.height) || 0);
+  const margin = getFloatingControlMargin(width);
+  const available = getAvailableVerticalSpace(height, size, margin);
+  const top = clamp(
+    (Number(point?.y) || 0) - pointerOffsetY,
+    margin,
+    margin + available
+  );
+  return {
+    version: FLOATING_CONTROL_SCHEMA_VERSION,
+    edge:
+      (Number(point?.x) || 0) < width / 2
+        ? FloatingControlEdge.LEFT
+        : FloatingControlEdge.RIGHT,
+    verticalRatio: available > 0 ? (top - margin) / available : 0
+  };
+}
+
+export function moveFloatingControlPreferenceWithKeyboard(
+  preference,
+  key,
+  viewport,
+  { size = FLOATING_CONTROL_SIZE, step = FLOATING_CONTROL_KEYBOARD_STEP } = {}
+) {
+  const normalized = normalizeFloatingControlPreference(preference);
+  if (key === "ArrowLeft" || key === "ArrowRight") {
+    return {
+      ...normalized,
+      edge:
+        key === "ArrowLeft"
+          ? FloatingControlEdge.LEFT
+          : FloatingControlEdge.RIGHT
+    };
+  }
+  if (key !== "ArrowUp" && key !== "ArrowDown") {
+    return normalized;
+  }
+
+  const layout = resolveFloatingControlLayout(normalized, viewport, { size });
+  const nextTop = layout.top + (key === "ArrowUp" ? -step : step);
+  const available = getAvailableVerticalSpace(
+    Math.max(0, Number(viewport?.height) || 0),
+    size,
+    layout.margin
+  );
+  return {
+    ...normalized,
+    verticalRatio:
+      available > 0
+        ? (clamp(nextTop, layout.margin, layout.margin + available) -
+            layout.margin) /
+          available
+        : 0
+  };
+}
 
 const STATUS_LABELS = Object.freeze({
   idle: "准备翻译",
@@ -57,12 +202,26 @@ const TEMPLATE = `
       --byok-line: rgba(23, 43, 61, .14);
       position: fixed;
       z-index: 2147483646;
+      width: 58px;
+      height: 58px;
       right: max(20px, env(safe-area-inset-right));
       bottom: max(20px, env(safe-area-inset-bottom));
       color: var(--byok-ink);
       font-family: "Avenir Next", "Noto Sans SC", sans-serif;
       font-size: 13px;
       line-height: 1.4;
+    }
+    :host([data-positioned="true"]) {
+      top: var(--byok-floating-top);
+      bottom: auto;
+    }
+    :host([data-edge="left"]) {
+      right: auto;
+      left: max(20px, env(safe-area-inset-left));
+    }
+    :host([data-edge="right"]) {
+      right: max(20px, env(safe-area-inset-right));
+      left: auto;
     }
     * { box-sizing: border-box; }
     button { font: inherit; }
@@ -82,6 +241,8 @@ const TEMPLATE = `
       );
       box-shadow: 0 16px 38px rgba(23, 43, 61, .24), 0 2px 8px rgba(23, 43, 61, .15);
       cursor: pointer;
+      touch-action: none;
+      user-select: none;
       transition: transform 160ms ease, box-shadow 160ms ease;
     }
     .launcher:hover {
@@ -89,6 +250,11 @@ const TEMPLATE = `
       box-shadow: 0 20px 44px rgba(23, 43, 61, .28), 0 3px 10px rgba(23, 43, 61, .16);
     }
     .launcher:focus-visible { outline: 3px solid rgba(217, 91, 64, .35); outline-offset: 3px; }
+    :host([data-dragging="true"]) .launcher {
+      cursor: grabbing;
+      transform: none;
+      box-shadow: 0 12px 30px rgba(23, 43, 61, .2), 0 2px 8px rgba(23, 43, 61, .14);
+    }
     .launcher__inner {
       display: grid;
       width: 50px;
@@ -119,10 +285,14 @@ const TEMPLATE = `
     }
     .launcher__count:empty { display: none; }
     .panel {
+      position: absolute;
+      right: 0;
+      bottom: 70px;
       display: none;
       width: min(318px, calc(100vw - 32px));
-      margin-bottom: 12px;
-      overflow: hidden;
+      max-height: var(--byok-panel-max-height, calc(100vh - 90px));
+      overflow-x: hidden;
+      overflow-y: auto;
       border: 1px solid var(--byok-line);
       border-radius: 20px 20px 24px 20px;
       background:
@@ -131,6 +301,19 @@ const TEMPLATE = `
       box-shadow: 0 24px 70px rgba(23, 43, 61, .25), 0 4px 14px rgba(23, 43, 61, .12);
       transform-origin: bottom right;
       animation: byok-panel-in 180ms cubic-bezier(.2,.8,.2,1) both;
+    }
+    :host([data-edge="left"]) .panel {
+      right: auto;
+      left: 0;
+      transform-origin: bottom left;
+    }
+    :host([data-panel-placement="below"]) .panel {
+      top: 70px;
+      bottom: auto;
+      transform-origin: top right;
+    }
+    :host([data-edge="left"][data-panel-placement="below"]) .panel {
+      transform-origin: top left;
     }
     :host([data-open="true"]) .panel { display: block; }
     @keyframes byok-panel-in {
@@ -225,11 +408,24 @@ const TEMPLATE = `
     .action--primary { grid-column: 1 / -1; border-color: var(--byok-ink); background: var(--byok-ink); color: white; }
     .action--quiet { color: var(--byok-muted); }
     .action:disabled { cursor: default; opacity: .38; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     @media (prefers-reduced-motion: reduce) {
       .panel, .launcher { animation: none; transition: none; }
     }
     @media (max-width: 520px) {
       :host { right: 12px; bottom: 12px; }
+      :host([data-edge="left"]) { right: auto; left: 12px; }
+      :host([data-edge="right"]) { right: 12px; left: auto; }
     }
   </style>
   <section class="panel" aria-label="网页翻译控制器">
@@ -262,13 +458,14 @@ const TEMPLATE = `
       <button class="action action--quiet" data-action="settings" type="button">翻译设置</button>
     </div>
   </section>
-  <button class="launcher" data-action="toggle" type="button" aria-label="打开翻译控制器" aria-expanded="false">
+  <button class="launcher" data-action="toggle" type="button" aria-label="打开翻译控制器" aria-describedby="launcher-position-hint" aria-expanded="false">
     <span class="launcher__inner">${FLOATING_ACTION_SVG}</span>
     <span class="launcher__count" data-field="badge"></span>
   </button>
+  <span id="launcher-position-hint" class="visually-hidden">拖动可移动位置；按 Shift 加方向键也可以移动。</span>
 `;
 
-export function createFloatingController(actions) {
+export function createFloatingController(actions, { windowObj = window } = {}) {
   const host = document.createElement("div");
   host.id = "byok-translator-floating-control";
   const shadow = host.attachShadow({ mode: "closed" });
@@ -288,8 +485,84 @@ export function createFloatingController(actions) {
     ])
   );
   let lastStatus = "idle";
+  let currentPosition = normalizeFloatingControlPreference(
+    DEFAULT_FLOATING_CONTROL_PREFERENCE
+  );
+  let dragState = null;
+  let suppressNextLauncherClick = false;
+  let suppressLauncherClickTimer = null;
+
+  function getViewport() {
+    return {
+      width: windowObj.innerWidth,
+      height: windowObj.innerHeight
+    };
+  }
+
+  function applyFloatingControlPreference(preference) {
+    currentPosition = normalizeFloatingControlPreference(preference);
+    const layout = resolveFloatingControlLayout(
+      currentPosition,
+      getViewport()
+    );
+    host.dataset.positioned = "true";
+    host.dataset.edge = layout.edge;
+    host.style.setProperty("--byok-floating-top", `${layout.top}px`);
+  }
+
+  function persistFloatingControlPreference(preference) {
+    void Promise.resolve(
+      actions.saveFloatingControlPreference?.(preference)
+    ).catch(() => undefined);
+  }
+
+  function updatePanelPlacement() {
+    const rect = host.getBoundingClientRect();
+    const layout = resolveFloatingPanelLayout(rect, windowObj.innerHeight);
+    host.dataset.panelPlacement = layout.placement;
+    host.style.setProperty(
+      "--byok-panel-max-height",
+      `${layout.maxHeight}px`
+    );
+  }
+
+  function suppressLauncherClickBriefly() {
+    suppressNextLauncherClick = true;
+    if (suppressLauncherClickTimer !== null) {
+      windowObj.clearTimeout(suppressLauncherClickTimer);
+    }
+    suppressLauncherClickTimer = windowObj.setTimeout(() => {
+      suppressNextLauncherClick = false;
+      suppressLauncherClickTimer = null;
+    }, FLOATING_CONTROL_CLICK_SUPPRESSION_MS);
+  }
+
+  function clearLauncherClickSuppression() {
+    suppressNextLauncherClick = false;
+    if (suppressLauncherClickTimer !== null) {
+      windowObj.clearTimeout(suppressLauncherClickTimer);
+      suppressLauncherClickTimer = null;
+    }
+  }
+
+  function clearDragState() {
+    if (dragState?.pointerId !== undefined) {
+      try {
+        if (buttons.toggle.hasPointerCapture?.(dragState.pointerId)) {
+          buttons.toggle.releasePointerCapture(dragState.pointerId);
+        }
+      } catch {
+        // Pointer capture can already be released when the viewport changes.
+      }
+    }
+    dragState = null;
+    delete host.dataset.dragging;
+  }
 
   function setOpen(open) {
+    if (open) {
+      updatePanelPlacement();
+    }
     host.dataset.open = String(open);
     buttons.toggle.setAttribute("aria-expanded", String(open));
   }
@@ -308,7 +581,94 @@ export function createFloatingController(actions) {
     }
   }
 
-  buttons.toggle.addEventListener("click", async () => {
+  buttons.toggle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || dragState) {
+      return;
+    }
+    const rect = host.getBoundingClientRect();
+    dragState = {
+      pointerId: event.pointerId,
+      start: { x: event.clientX, y: event.clientY },
+      pointerOffsetY: clamp(
+        event.clientY - rect.top,
+        0,
+        FLOATING_CONTROL_SIZE
+      ),
+      moved: false,
+      startPreference: currentPosition
+    };
+    buttons.toggle.setPointerCapture?.(event.pointerId);
+  });
+
+  buttons.toggle.addEventListener("pointermove", (event) => {
+    if (!dragState || event.pointerId !== dragState.pointerId) {
+      return;
+    }
+    const current = { x: event.clientX, y: event.clientY };
+    if (
+      !dragState.moved &&
+      !isLauncherDragIntent(dragState.start, current)
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (!dragState.moved) {
+      dragState.moved = true;
+      host.dataset.dragging = "true";
+      setOpen(false);
+    }
+    applyFloatingControlPreference(
+      computeDockedFloatingControlPreference(current, getViewport(), {
+        pointerOffsetY: dragState.pointerOffsetY
+      })
+    );
+  });
+
+  buttons.toggle.addEventListener("pointerup", (event) => {
+    if (!dragState || event.pointerId !== dragState.pointerId) {
+      return;
+    }
+    if (shouldSuppressLauncherClickAfterPointer(dragState)) {
+      suppressLauncherClickBriefly();
+      persistFloatingControlPreference(currentPosition);
+    }
+    clearDragState();
+  });
+
+  buttons.toggle.addEventListener("pointercancel", (event) => {
+    if (!dragState || event.pointerId !== dragState.pointerId) {
+      return;
+    }
+    applyFloatingControlPreference(dragState.startPreference);
+    clearDragState();
+  });
+
+  buttons.toggle.addEventListener("keydown", (event) => {
+    if (
+      !event.shiftKey ||
+      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
+        event.key
+      )
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const preference = moveFloatingControlPreferenceWithKeyboard(
+      currentPosition,
+      event.key,
+      getViewport()
+    );
+    applyFloatingControlPreference(preference);
+    persistFloatingControlPreference(preference);
+  });
+
+  buttons.toggle.addEventListener("click", async (event) => {
+    if (suppressNextLauncherClick) {
+      clearLauncherClickSuppression();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     const intent = getLauncherIntent(lastStatus);
     if (intent === "ignore") {
       return;
@@ -343,6 +703,22 @@ export function createFloatingController(actions) {
   buttons["scope-page"].addEventListener("click", () =>
     void run("setWholePageScope")
   );
+
+  const onResize = () => {
+    applyFloatingControlPreference(currentPosition);
+    if (host.dataset.open === "true") {
+      updatePanelPlacement();
+    }
+  };
+  windowObj.addEventListener("resize", onResize);
+  applyFloatingControlPreference(currentPosition);
+  void Promise.resolve(actions.getFloatingControlPreference?.())
+    .then((response) => {
+      if (response?.ok && response.preference) {
+        applyFloatingControlPreference(response.preference);
+      }
+    })
+    .catch(() => undefined);
 
   return {
     render(status = {}) {
@@ -406,6 +782,8 @@ export function createFloatingController(actions) {
     },
     setOpen,
     destroy() {
+      clearLauncherClickSuppression();
+      windowObj.removeEventListener("resize", onResize);
       host.remove();
     }
   };
