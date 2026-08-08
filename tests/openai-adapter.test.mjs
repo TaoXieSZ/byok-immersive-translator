@@ -39,6 +39,27 @@ test("builds a minimal translation payload", () => {
   assert.equal(body.model, "model-a");
   assert.match(body.messages[1].content, /"b1":"Hello"/);
   assert.doesNotMatch(init.body, /cookie|outerHTML|document/iu);
+  assert.equal("thinking" in body, false);
+});
+
+test("uses the economical non-thinking path for official DeepSeek V4 Flash", () => {
+  const deepSeek = {
+    ...provider,
+    baseUrl: "https://api.deepseek.com",
+    model: "deepseek-v4-flash"
+  };
+  const requests = [
+    buildTranslationRequest(deepSeek, [{ id: "b1", text: "Hello" }], "中文"),
+    buildSingleTranslationRequest(deepSeek, "Hello", "中文"),
+    buildSelectionTranslationRequest(deepSeek, "Hello", "Context", "中文"),
+    buildTermExplanationRequest(deepSeek, "API", "Context", "中文")
+  ];
+
+  for (const request of requests) {
+    assert.deepEqual(JSON.parse(request.init.body).thinking, {
+      type: "disabled"
+    });
+  }
 });
 
 test("requires opaque format markers without exposing DOM metadata", () => {

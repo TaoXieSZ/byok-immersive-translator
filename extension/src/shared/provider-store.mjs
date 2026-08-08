@@ -1,3 +1,5 @@
+import { migrateLegacyDeepSeekProvider } from "./provider-config.mjs";
+
 const STORAGE_KEY = "byokTranslatorState";
 const EMPTY_STATE = Object.freeze({
   providers: [],
@@ -24,7 +26,13 @@ export function createProviderRepository(storageArea) {
   return {
     async getState() {
       const stored = await storageArea.get(STORAGE_KEY);
-      return copyState(stored?.[STORAGE_KEY] ?? EMPTY_STATE);
+      const state = copyState(stored?.[STORAGE_KEY] ?? EMPTY_STATE);
+      const providers = state.providers.map(migrateLegacyDeepSeekProvider);
+      if (providers.some((provider, index) => provider !== state.providers[index])) {
+        state.providers = providers;
+        await storageArea.set({ [STORAGE_KEY]: state });
+      }
+      return copyState(state);
     },
 
     async saveProvider(provider, { select = true } = {}) {

@@ -5,12 +5,14 @@ import {
   getChatCompletionsUrl,
   getProviderOriginPattern,
   normalizeBaseUrl,
+  OLLAMA_PRESET,
   resolveProviderProfile,
   toPublicProviderStatus,
   validateProviderDraft
 } from "../extension/src/shared/provider-config.mjs";
 
 test("ships a working DeepSeek chat preset", () => {
+  assert.equal(DEEPSEEK_PRESET.name, "DeepSeek V4 Flash");
   assert.equal(DEEPSEEK_PRESET.baseUrl, "https://api.deepseek.com");
   assert.equal(DEEPSEEK_PRESET.model, "deepseek-v4-flash");
   assert.equal(DEEPSEEK_PRESET.jsonMode, true);
@@ -20,6 +22,39 @@ test("ships a working DeepSeek chat preset", () => {
     minConcurrency: 2,
     maxConcurrency: 8
   });
+});
+
+test("ships a privacy-first Ollama preset for the local OpenAI endpoint", () => {
+  assert.equal(OLLAMA_PRESET.baseUrl, "http://localhost:11434/v1");
+  assert.equal(OLLAMA_PRESET.apiKey, "ollama");
+  assert.equal(OLLAMA_PRESET.model, "qwen3:8b");
+  assert.equal(OLLAMA_PRESET.jsonMode, false);
+  assert.deepEqual(OLLAMA_PRESET.performanceProfile, {
+    stream: true,
+    initialConcurrency: 1,
+    minConcurrency: 1,
+    maxConcurrency: 1
+  });
+  assert.deepEqual(
+    resolveProviderProfile({
+      baseUrl: OLLAMA_PRESET.baseUrl
+    }),
+    OLLAMA_PRESET.performanceProfile
+  );
+});
+
+test("keeps the Ollama profile after the Options form saves its visible fields", () => {
+  const provider = validateProviderDraft({
+    id: "ollama-local",
+    name: "Ollama（本机）",
+    baseUrl: "http://127.0.0.1:11434/v1",
+    apiKey: "ollama",
+    model: "local-translator",
+    targetLanguage: "简体中文",
+    jsonMode: false
+  });
+
+  assert.deepEqual(provider.performanceProfile, OLLAMA_PRESET.performanceProfile);
 });
 
 test("normalizes secure and loopback base URLs", () => {
@@ -85,7 +120,7 @@ test("adds conservative performance defaults to custom providers", () => {
   });
 });
 
-test("fills legacy DeepSeek performance defaults without changing its model", () => {
+test("migrates retired official DeepSeek aliases to V4 Flash", () => {
   const legacy = {
     id: "legacy",
     name: "DeepSeek",
@@ -97,7 +132,8 @@ test("fills legacy DeepSeek performance defaults without changing its model", ()
   };
 
   const provider = validateProviderDraft(legacy);
-  assert.equal(provider.model, "deepseek-chat");
+  assert.equal(provider.name, "DeepSeek V4 Flash");
+  assert.equal(provider.model, "deepseek-v4-flash");
   assert.deepEqual(
     provider.performanceProfile,
     DEEPSEEK_PRESET.performanceProfile

@@ -8,6 +8,10 @@ import {
   createAppearanceFormController,
   createCanvasFontMetricProbe,
   detectFontAvailability,
+  getExtensionOriginSetting,
+  getProviderSetupCopy,
+  inferProviderKind,
+  ProviderKind,
   parseCustomFamilyInput
 } from "../extension/src/options/options.mjs";
 import {
@@ -86,6 +90,68 @@ test("Options 提供三种字体选择、本机说明及完整预览样本", asy
   assert.match(html, /Readable English 0123456789/u);
   assert.match(html, /id="font-preview-code"/u);
   assert.match(html, /id="font-preview-kbd"/u);
+});
+
+test("Options 默认只要求 API Key，并把连接细节收进高级设置", async () => {
+  const html = await readFile(
+    new URL("../extension/src/options/options.html", import.meta.url),
+    "utf8"
+  );
+  assert.match(html, /id="api-key-field" class="primary-field"/u);
+  assert.match(html, /只需填写这一项/u);
+  assert.match(html, /id="target-language" required/u);
+  assert.match(html, /id="advanced-settings"/u);
+  assert.match(html, /通常无需修改/u);
+});
+
+test("Options 提供无需 API Key 的 Ollama 预设和隐私边界说明", async () => {
+  const html = await readFile(
+    new URL("../extension/src/options/options.html", import.meta.url),
+    "utf8"
+  );
+  assert.match(html, /id="new-ollama"/u);
+  assert.match(html, /无需 Key/u);
+  assert.match(html, /id="local-privacy-note"/u);
+  assert.match(html, /正文不出设备/u);
+  assert.match(html, /id="ollama-extension-origin"/u);
+});
+
+test("Ollama 来源提示同时支持 Chrome 与 Safari 扩展协议", () => {
+  assert.equal(
+    getExtensionOriginSetting("chrome-extension://abc/"),
+    "OLLAMA_ORIGINS=chrome-extension://abc"
+  );
+  assert.equal(
+    getExtensionOriginSetting("safari-web-extension://com.example.extension/"),
+    "OLLAMA_ORIGINS=safari-web-extension://com.example.extension"
+  );
+});
+
+test("Provider 预设识别为首次配置提供完整默认值", () => {
+  assert.equal(
+    inferProviderKind({ baseUrl: "https://api.deepseek.com" }),
+    ProviderKind.DEEPSEEK
+  );
+  assert.equal(
+    inferProviderKind({ baseUrl: "http://localhost:11434/v1" }),
+    ProviderKind.OLLAMA
+  );
+  assert.equal(
+    inferProviderKind({ baseUrl: "https://api.example.com/v1" }),
+    ProviderKind.CUSTOM
+  );
+  assert.deepEqual(
+    getProviderSetupCopy(ProviderKind.DEEPSEEK).modelSuggestions,
+    ["deepseek-v4-flash", "deepseek-v4-pro"]
+  );
+  assert.match(
+    getProviderSetupCopy(ProviderKind.DEEPSEEK).hint,
+    /粘贴 API Key/u
+  );
+  assert.match(
+    getProviderSetupCopy(ProviderKind.OLLAMA).hint,
+    /无需 API Key/u
+  );
 });
 
 test("自定义字体输入支持换行和英文逗号并清理空项", () => {

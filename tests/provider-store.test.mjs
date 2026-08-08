@@ -36,3 +36,27 @@ test("creates, selects, updates, and deletes provider records", async () => {
   assert.equal(state.selectedProviderId, "a");
   assert.equal("sync" in storage.data, false);
 });
+
+test("persists migration of retired official DeepSeek model aliases", async () => {
+  const storage = createMemoryStorage();
+  storage.data.byokTranslatorState = {
+    providers: [{
+      id: "deepseek",
+      name: "DeepSeek",
+      baseUrl: "https://api.deepseek.com",
+      apiKey: "secret",
+      model: "deepseek-chat"
+    }],
+    selectedProviderId: "deepseek"
+  };
+  const repository = createProviderRepository(storage);
+
+  const state = await repository.getState();
+
+  assert.equal(state.providers[0].name, "DeepSeek V4 Flash");
+  assert.equal(state.providers[0].model, "deepseek-v4-flash");
+  assert.equal(
+    storage.data.byokTranslatorState.providers[0].model,
+    "deepseek-v4-flash"
+  );
+});
