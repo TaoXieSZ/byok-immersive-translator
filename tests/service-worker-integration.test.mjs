@@ -5,6 +5,7 @@ import {
   validateAppearancePreferenceMessage
 } from "../extension/src/shared/messages.mjs";
 import { APPEARANCE_STORAGE_KEY } from "../extension/src/shared/appearance-preferences.mjs";
+import { FLOATING_CONTROL_STORAGE_KEY } from "../extension/src/shared/floating-control-preferences.mjs";
 
 function eventTarget() {
   return { addListener() {} };
@@ -97,6 +98,11 @@ test("service worker composes trusted handlers without exposing provider fields"
           version: 1,
           mode: "maple-mono",
           customFamilies: []
+        },
+        [FLOATING_CONTROL_STORAGE_KEY]: {
+          version: 1,
+          edge: "right",
+          verticalRatio: 0.8
         }
       }),
       session: storageArea(),
@@ -268,6 +274,60 @@ test("service worker composes trusted handlers without exposing provider fields"
               url: "chrome-extension://extension-id/src/options/options.html"
             }
           }
+        )
+      ).error.code,
+      "INVALID_MESSAGE"
+    );
+    const webSender = {
+      id: "extension-id",
+      tab: { id: 2, url: "https://example.com/article" }
+    };
+    assert.deepEqual(
+      await handleMessage(
+        { type: MessageType.GET_FLOATING_CONTROL_PREFERENCE },
+        webSender
+      ),
+      {
+        ok: true,
+        preference: { version: 1, edge: "right", verticalRatio: 0.8 }
+      }
+    );
+    assert.deepEqual(
+      await handleMessage(
+        {
+          type: MessageType.SAVE_FLOATING_CONTROL_PREFERENCE,
+          preference: { version: 1, edge: "left", verticalRatio: 0.3 }
+        },
+        webSender
+      ),
+      {
+        ok: true,
+        preference: { version: 1, edge: "left", verticalRatio: 0.3 }
+      }
+    );
+    assert.deepEqual(
+      await handleMessage(
+        { type: MessageType.GET_FLOATING_CONTROL_PREFERENCE },
+        webSender
+      ),
+      {
+        ok: true,
+        preference: { version: 1, edge: "left", verticalRatio: 0.3 }
+      }
+    );
+    assert.equal(
+      (
+        await handleMessage(
+          {
+            type: MessageType.SAVE_FLOATING_CONTROL_PREFERENCE,
+            preference: {
+              version: 1,
+              edge: "left",
+              verticalRatio: 0.3,
+              apiKey: "secret"
+            }
+          },
+          webSender
         )
       ).error.code,
       "INVALID_MESSAGE"

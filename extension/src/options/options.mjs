@@ -9,6 +9,7 @@ import {
 import {
   DEEPSEEK_PRESET,
   getProviderOriginPattern,
+  OLLAMA_PRESET,
   validateProviderDraft
 } from "../shared/provider-config.mjs";
 import {
@@ -25,6 +26,61 @@ import {
 const MAPLE_MONO_PRIMARY_FAMILY = "Maple Mono NF CN";
 const FONT_PROBE_TEXT = "mmmmmmmmmmlliWW@@你好0123456789";
 const FONT_PROBE_FALLBACKS = ["monospace", "sans-serif", "serif"];
+export const ProviderKind = Object.freeze({
+  DEEPSEEK: "deepseek",
+  OLLAMA: "ollama",
+  CUSTOM: "custom"
+});
+
+export function inferProviderKind(provider) {
+  try {
+    const url = new URL(provider?.baseUrl);
+    if (url.hostname === "api.deepseek.com") {
+      return ProviderKind.DEEPSEEK;
+    }
+    if (
+      ["localhost", "127.0.0.1", "::1"].includes(url.hostname) &&
+      url.port === "11434"
+    ) {
+      return ProviderKind.OLLAMA;
+    }
+  } catch {
+    // Incomplete custom drafts intentionally fall through to the custom form.
+  }
+  return ProviderKind.CUSTOM;
+}
+
+export function getProviderSetupCopy(kind) {
+  if (kind === ProviderKind.DEEPSEEK) {
+    return {
+      title: "连接 DeepSeek",
+      hint: "推荐配置已经准备好。粘贴 API Key，保存后即可开始翻译。",
+      modelHelp: "默认使用速度和成本更均衡的 DeepSeek V4 Flash。",
+      modelSuggestions: ["deepseek-v4-flash", "deepseek-v4-pro"]
+    };
+  }
+  if (kind === ProviderKind.OLLAMA) {
+    return {
+      title: "连接 Ollama（本机）",
+      hint: "无需 API Key。确认本机模型名称，保存后即可在设备内翻译。",
+      modelHelp: "默认使用 qwen3:8b；也可以输入本机已经下载的模型名称。",
+      modelSuggestions: ["qwen3:8b"]
+    };
+  }
+  return {
+    title: "连接自定义服务",
+    hint: "填写 OpenAI-compatible 服务的凭据；连接地址和兼容选项位于高级设置。",
+    modelHelp: "输入服务商提供的准确模型 ID。",
+    modelSuggestions: []
+  };
+}
+
+export function getExtensionOriginSetting(runtimeUrl) {
+  const origin = typeof runtimeUrl === "string"
+    ? runtimeUrl.replace(/\/+$/u, "")
+    : "";
+  return `OLLAMA_ORIGINS=${origin || "当前扩展来源"}`;
+}
 
 export function parseCustomFamilyInput(input) {
   return String(input ?? "")
@@ -233,15 +289,23 @@ async function initializeOptions() {
     baseUrl: document.querySelector("#base-url"),
     apiKey: document.querySelector("#api-key"),
     model: document.querySelector("#model"),
+    modelHelp: document.querySelector("#model-help"),
+    modelSuggestions: document.querySelector("#model-suggestions"),
     targetLanguage: document.querySelector("#target-language"),
     jsonMode: document.querySelector("#json-mode"),
     providerList: document.querySelector("#provider-list"),
     title: document.querySelector("#editor-title"),
+    setupHint: document.querySelector("#setup-hint"),
     selectedBadge: document.querySelector("#selected-badge"),
+    apiKeyField: document.querySelector("#api-key-field"),
+    advancedSettings: document.querySelector("#advanced-settings"),
+    localPrivacyNote: document.querySelector("#local-privacy-note"),
+    ollamaExtensionOrigin: document.querySelector("#ollama-extension-origin"),
     feedback: document.querySelector("#feedback"),
     test: document.querySelector("#test-provider"),
     delete: document.querySelector("#delete-provider"),
     newDeepSeek: document.querySelector("#new-deepseek"),
+    newOllama: document.querySelector("#new-ollama"),
     newCustom: document.querySelector("#new-custom"),
     pageAccess: document.querySelector("#page-access"),
     pageAccessStatus: document.querySelector("#page-access-status")
@@ -262,6 +326,9 @@ async function initializeOptions() {
   };
 
   let state = await repository.getState();
+  elements.ollamaExtensionOrigin.textContent = getExtensionOriginSetting(
+    chrome.runtime.getURL("")
+  );
 
   function setFeedback(message = "", tone = "") {
     elements.feedback.textContent = message;
@@ -291,18 +358,67 @@ async function initializeOptions() {
     });
   }
 
-  function fillForm(provider = null) {
+  function selectTargetLanguage(language) {
+    const value = language || "简体中文";
+    for (const option of [...elements.targetLanguage.options]) {
+      if (option.dataset.custom === "true") {
+        option.remove();
+      }
+    }
+    if (![...elements.targetLanguage.options].some((option) => option.value === value)) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      option.dataset.custom = "true";
+      elements.targetLanguage.append(option);
+    }
+    elements.targetLanguage.value = value;
+  }
+
+  function renderProviderKind(kind) {
+    const copy = getProviderSetupCopy(kind);
+    elements.title.textContent = copy.title;
+    elements.setupHint.textContent = copy.hint;
+    elements.modelHelp.textContent = copy.modelHelp;
+    elements.modelSuggestions.replaceChildren(
+      ...copy.modelSuggestions.map((model) => {
+        const option = document.createElement("option");
+        option.value = model;
+        return option;
+      })
+    );
+    elements.apiKeyField.hidden = kind === ProviderKind.OLLAMA;
+    elements.apiKey.required = kind !== ProviderKind.OLLAMA;
+    elements.apiKey.placeholder =
+      kind === ProviderKind.DEEPSEEK
+        ? "粘贴 DeepSeek API Key"
+        : "粘贴服务商提供的 API Key";
+    elements.localPrivacyNote.hidden = kind !== ProviderKind.OLLAMA;
+    elements.advancedSettings.open = kind === ProviderKind.CUSTOM;
+    elements.newDeepSeek.setAttribute(
+      "aria-pressed",
+      String(kind === ProviderKind.DEEPSEEK)
+    );
+    elements.newOllama.setAttribute(
+      "aria-pressed",
+      String(kind === ProviderKind.OLLAMA)
+    );
+  }
+
+  function fillForm(provider = null, requestedKind = null) {
+    const kind = requestedKind ?? inferProviderKind(provider);
     elements.id.value = provider?.id ?? "";
     elements.name.value = provider?.name ?? "";
     elements.baseUrl.value = provider?.baseUrl ?? "";
-    elements.apiKey.value = provider?.apiKey ?? "";
+    elements.apiKey.value =
+      provider?.apiKey ?? (kind === ProviderKind.OLLAMA ? "ollama" : "");
     elements.model.value = provider?.model ?? "";
-    elements.targetLanguage.value = provider?.targetLanguage ?? "简体中文";
+    selectTargetLanguage(provider?.targetLanguage);
     elements.jsonMode.checked = provider?.jsonMode ?? false;
-    elements.title.textContent = provider ? provider.name : "新建翻译服务";
     elements.delete.hidden = !provider;
     elements.selectedBadge.hidden =
       !provider || provider.id !== state.selectedProviderId;
+    renderProviderKind(kind);
     setFeedback();
   }
 
@@ -342,11 +458,22 @@ async function initializeOptions() {
   }
 
   elements.newDeepSeek.addEventListener("click", () => {
-    fillForm({ ...DEEPSEEK_PRESET, id: "", apiKey: "" });
-    elements.title.textContent = "新建 DeepSeek";
+    fillForm(
+      { ...DEEPSEEK_PRESET, id: "", apiKey: "" },
+      ProviderKind.DEEPSEEK
+    );
+    elements.apiKey.focus();
   });
 
-  elements.newCustom.addEventListener("click", () => fillForm());
+  elements.newOllama.addEventListener("click", () => {
+    fillForm({ ...OLLAMA_PRESET, id: "" }, ProviderKind.OLLAMA);
+    elements.model.focus();
+  });
+
+  elements.newCustom.addEventListener("click", () => {
+    fillForm(null, ProviderKind.CUSTOM);
+    elements.apiKey.focus();
+  });
 
   elements.pageAccess.addEventListener("change", async () => {
     const enable = elements.pageAccess.checked;
@@ -426,7 +553,7 @@ async function initializeOptions() {
         if (!response?.ok) {
           throw new Error(response?.error?.message ?? "连接测试失败。");
         }
-        setFeedback("连接成功，Token 与模型可用。", "success");
+        setFeedback("连接成功，凭据（若服务需要）与模型可用。", "success");
       } catch (error) {
         setFeedback(error.message, "error");
       }
@@ -444,15 +571,20 @@ async function initializeOptions() {
     const selected = state.providers.find(
       (item) => item.id === state.selectedProviderId
     );
-    fillForm(selected ?? null);
+    fillForm(
+      selected ?? { ...DEEPSEEK_PRESET, id: "", apiKey: "" },
+      selected ? null : ProviderKind.DEEPSEEK
+    );
     setFeedback("配置与 API Key 已删除。", "success");
   });
 
   renderProviderList();
+  const selectedProvider = state.providers.find(
+    (provider) => provider.id === state.selectedProviderId
+  );
   fillForm(
-    state.providers.find(
-      (provider) => provider.id === state.selectedProviderId
-    ) ?? null
+    selectedProvider ?? { ...DEEPSEEK_PRESET, id: "", apiKey: "" },
+    selectedProvider ? null : ProviderKind.DEEPSEEK
   );
   renderPageAccess(await hasPageAccess());
 

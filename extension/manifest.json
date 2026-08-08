@@ -4,6 +4,11 @@
   "description": "使用你自己的 DeepSeek 或 OpenAI-compatible API，在网页原文下方显示译文。",
   "version": "0.2.0",
   "minimum_chrome_version": "102",
+  "browser_specific_settings": {
+    "safari": {
+      "strict_min_version": "16.4"
+    }
+  },
   "icons": {
     "16": "assets/brand/icon-16.png",
     "32": "assets/brand/icon-32.png",

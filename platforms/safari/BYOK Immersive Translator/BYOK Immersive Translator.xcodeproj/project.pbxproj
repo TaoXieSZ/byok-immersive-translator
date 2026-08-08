@@ -1,0 +1,605 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D39280513023311E008CD89C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39280503023311E008CD89C /* AppDelegate.swift */; };
+		D39280553023311E008CD89C /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = D39280533023311E008CD89C /* Main.html */; };
+		D39280573023311E008CD89C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = D39280563023311E008CD89C /* Icon.png */; };
+		D39280593023311E008CD89C /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = D39280583023311E008CD89C /* Style.css */; };
+		D392805B3023311E008CD89C /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = D392805A3023311E008CD89C /* Script.js */; };
+		D392805D3023311E008CD89C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D392805C3023311E008CD89C /* ViewController.swift */; };
+		D39280603023311E008CD89C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D392805E3023311E008CD89C /* Main.storyboard */; };
+		D39280623023311F008CD89C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D39280613023311F008CD89C /* Assets.xcassets */; };
+		D39280693023311F008CD89C /* BYOK Immersive Translator Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D39280683023311F008CD89C /* BYOK Immersive Translator Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D392806E3023311F008CD89C /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D392806D3023311F008CD89C /* SafariWebExtensionHandler.swift */; };
+		D392807D3023311F008CD89C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = D392807A3023311F008CD89C /* manifest.json */; };
+		D392807E3023311F008CD89C /* assets in Resources */ = {isa = PBXBuildFile; fileRef = D392807B3023311F008CD89C /* assets */; };
+		D392807F3023311F008CD89C /* src in Resources */ = {isa = PBXBuildFile; fileRef = D392807C3023311F008CD89C /* src */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D392806A3023311F008CD89C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D39280453023311E008CD89C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D39280673023311F008CD89C;
+			remoteInfo = "BYOK Immersive Translator Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D39280753023311F008CD89C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D39280693023311F008CD89C /* BYOK Immersive Translator Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D392804D3023311E008CD89C /* BYOK Immersive Translator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BYOK Immersive Translator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D39280503023311E008CD89C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D39280543023311E008CD89C /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		D39280563023311E008CD89C /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		D39280583023311E008CD89C /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		D392805A3023311E008CD89C /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		D392805C3023311E008CD89C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		D392805F3023311E008CD89C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D39280613023311F008CD89C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D39280633023311F008CD89C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D39280683023311F008CD89C /* BYOK Immersive Translator Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "BYOK Immersive Translator Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D392806D3023311F008CD89C /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		D392806F3023311F008CD89C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D392807A3023311F008CD89C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../../extension/manifest.json; sourceTree = "<group>"; };
+		D392807B3023311F008CD89C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../../../extension/assets; sourceTree = "<group>"; };
+		D392807C3023311F008CD89C /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../../../extension/src; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D392804A3023311E008CD89C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D39280653023311F008CD89C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D39280443023311E008CD89C = {
+			isa = PBXGroup;
+			children = (
+				D392804F3023311E008CD89C /* BYOK Immersive Translator */,
+				D392806C3023311F008CD89C /* BYOK Immersive Translator Extension */,
+				D392804E3023311E008CD89C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D392804E3023311E008CD89C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D392804D3023311E008CD89C /* BYOK Immersive Translator.app */,
+				D39280683023311F008CD89C /* BYOK Immersive Translator Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D392804F3023311E008CD89C /* BYOK Immersive Translator */ = {
+			isa = PBXGroup;
+			children = (
+				D39280503023311E008CD89C /* AppDelegate.swift */,
+				D392805C3023311E008CD89C /* ViewController.swift */,
+				D392805E3023311E008CD89C /* Main.storyboard */,
+				D39280613023311F008CD89C /* Assets.xcassets */,
+				D39280633023311F008CD89C /* Info.plist */,
+				D39280523023311E008CD89C /* Resources */,
+			);
+			path = "BYOK Immersive Translator";
+			sourceTree = "<group>";
+		};
+		D39280523023311E008CD89C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D39280533023311E008CD89C /* Main.html */,
+				D39280563023311E008CD89C /* Icon.png */,
+				D39280583023311E008CD89C /* Style.css */,
+				D392805A3023311E008CD89C /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D392806C3023311F008CD89C /* BYOK Immersive Translator Extension */ = {
+			isa = PBXGroup;
+			children = (
+				D39280793023311F008CD89C /* Resources */,
+				D392806D3023311F008CD89C /* SafariWebExtensionHandler.swift */,
+				D392806F3023311F008CD89C /* Info.plist */,
+			);
+			path = "BYOK Immersive Translator Extension";
+			sourceTree = "<group>";
+		};
+		D39280793023311F008CD89C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D392807A3023311F008CD89C /* manifest.json */,
+				D392807B3023311F008CD89C /* assets */,
+				D392807C3023311F008CD89C /* src */,
+			);
+			name = Resources;
+			path = "BYOK Immersive Translator Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D392804C3023311E008CD89C /* BYOK Immersive Translator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D39280763023311F008CD89C /* Build configuration list for PBXNativeTarget "BYOK Immersive Translator" */;
+			buildPhases = (
+				D39280493023311E008CD89C /* Sources */,
+				D392804A3023311E008CD89C /* Frameworks */,
+				D392804B3023311E008CD89C /* Resources */,
+				D39280753023311F008CD89C /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D392806B3023311F008CD89C /* PBXTargetDependency */,
+			);
+			name = "BYOK Immersive Translator";
+			packageProductDependencies = (
+			);
+			productName = "BYOK Immersive Translator";
+			productReference = D392804D3023311E008CD89C /* BYOK Immersive Translator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D39280673023311F008CD89C /* BYOK Immersive Translator Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D39280723023311F008CD89C /* Build configuration list for PBXNativeTarget "BYOK Immersive Translator Extension" */;
+			buildPhases = (
+				D39280643023311F008CD89C /* Sources */,
+				D39280653023311F008CD89C /* Frameworks */,
+				D39280663023311F008CD89C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "BYOK Immersive Translator Extension";
+			packageProductDependencies = (
+			);
+			productName = "BYOK Immersive Translator Extension";
+			productReference = D39280683023311F008CD89C /* BYOK Immersive Translator Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D39280453023311E008CD89C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					D392804C3023311E008CD89C = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					D39280673023311F008CD89C = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+				};
+			};
+			buildConfigurationList = D39280483023311E008CD89C /* Build configuration list for PBXProject "BYOK Immersive Translator" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D39280443023311E008CD89C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D392804E3023311E008CD89C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D392804C3023311E008CD89C /* BYOK Immersive Translator */,
+				D39280673023311F008CD89C /* BYOK Immersive Translator Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D392804B3023311E008CD89C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D39280573023311E008CD89C /* Icon.png in Resources */,
+				D39280603023311E008CD89C /* Main.storyboard in Resources */,
+				D392805B3023311E008CD89C /* Script.js in Resources */,
+				D39280553023311E008CD89C /* Main.html in Resources */,
+				D39280623023311F008CD89C /* Assets.xcassets in Resources */,
+				D39280593023311E008CD89C /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D39280663023311F008CD89C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D392807F3023311F008CD89C /* src in Resources */,
+				D392807D3023311F008CD89C /* manifest.json in Resources */,
+				D392807E3023311F008CD89C /* assets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D39280493023311E008CD89C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D392805D3023311E008CD89C /* ViewController.swift in Sources */,
+				D39280513023311E008CD89C /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D39280643023311F008CD89C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D392806E3023311F008CD89C /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D392806B3023311F008CD89C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D39280673023311F008CD89C /* BYOK Immersive Translator Extension */;
+			targetProxy = D392806A3023311F008CD89C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D39280533023311E008CD89C /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D39280543023311E008CD89C /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		D392805E3023311E008CD89C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D392805F3023311E008CD89C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		D39280703023311F008CD89C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D39280713023311F008CD89C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		D39280733023311F008CD89C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "BYOK Immersive Translator Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "BYOK Immersive Translator Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.taoxie.byok-immersive-translator.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D39280743023311F008CD89C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "BYOK Immersive Translator Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "BYOK Immersive Translator Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.taoxie.byok-immersive-translator.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D39280773023311F008CD89C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "BYOK Immersive Translator/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "BYOK Immersive Translator";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.taoxie.byok-immersive-translator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D39280783023311F008CD89C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "BYOK Immersive Translator/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "BYOK Immersive Translator";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.taoxie.byok-immersive-translator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D39280483023311E008CD89C /* Build configuration list for PBXProject "BYOK Immersive Translator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D39280703023311F008CD89C /* Debug */,
+				D39280713023311F008CD89C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D39280723023311F008CD89C /* Build configuration list for PBXNativeTarget "BYOK Immersive Translator Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D39280733023311F008CD89C /* Debug */,
+				D39280743023311F008CD89C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D39280763023311F008CD89C /* Build configuration list for PBXNativeTarget "BYOK Immersive Translator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D39280773023311F008CD89C /* Debug */,
+				D39280783023311F008CD89C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D39280453023311E008CD89C /* Project object */;
+}

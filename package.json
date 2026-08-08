@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/check-syntax.mjs",
+    "safari:build": "xcodebuild -project 'platforms/safari/BYOK Immersive Translator/BYOK Immersive Translator.xcodeproj' -scheme 'BYOK Immersive Translator' -configuration Debug -derivedDataPath build/safari CODE_SIGNING_ALLOWED=NO build",
     "test": "node --test",
     "verify": "npm run check && npm test"
   }

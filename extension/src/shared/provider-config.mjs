@@ -1,16 +1,27 @@
 import {
   CUSTOM_PROVIDER_PROFILE,
   DEEPSEEK_PROVIDER_PROFILE,
+  OLLAMA_PROVIDER_PROFILE,
   validateProviderProfile
 } from "./runtime-limits.mjs";
 
 export const DEEPSEEK_PRESET = Object.freeze({
-  name: "DeepSeek",
+  name: "DeepSeek V4 Flash",
   baseUrl: "https://api.deepseek.com",
   model: "deepseek-v4-flash",
   targetLanguage: "简体中文",
   jsonMode: true,
   performanceProfile: DEEPSEEK_PROVIDER_PROFILE
+});
+
+export const OLLAMA_PRESET = Object.freeze({
+  name: "Ollama（本机）",
+  baseUrl: "http://localhost:11434/v1",
+  apiKey: "ollama",
+  model: "qwen3:8b",
+  targetLanguage: "简体中文",
+  jsonMode: false,
+  performanceProfile: OLLAMA_PROVIDER_PROFILE
 });
 
 function isLoopbackHostname(hostname) {
@@ -62,7 +73,12 @@ export function getChatCompletionsUrl(baseUrl) {
   return `${normalized}/chat/completions`;
 }
 
-function isDeepSeekProvider(provider) {
+const LEGACY_DEEPSEEK_MODELS = new Set([
+  "deepseek-chat",
+  "deepseek-reasoner"
+]);
+
+export function isOfficialDeepSeekProvider(provider) {
   try {
     return (
       new URL(normalizeBaseUrl(provider?.baseUrl)).hostname ===
@@ -73,19 +89,45 @@ function isDeepSeekProvider(provider) {
   }
 }
 
+export function migrateLegacyDeepSeekProvider(provider) {
+  if (
+    !isOfficialDeepSeekProvider(provider) ||
+    !LEGACY_DEEPSEEK_MODELS.has(provider?.model?.toLowerCase?.())
+  ) {
+    return provider;
+  }
+
+  return {
+    ...provider,
+    name: provider.name === "DeepSeek" ? DEEPSEEK_PRESET.name : provider.name,
+    model: DEEPSEEK_PRESET.model
+  };
+}
+
+function isDefaultOllamaProvider(provider) {
+  try {
+    const url = new URL(normalizeBaseUrl(provider?.baseUrl));
+    return isLoopbackHostname(url.hostname) && url.port === "11434";
+  } catch {
+    return false;
+  }
+}
+
 export function resolveProviderProfile(provider) {
   if (provider?.performanceProfile !== undefined) {
     return validateProviderProfile(provider.performanceProfile);
   }
   return {
-    ...(isDeepSeekProvider(provider)
+    ...(isOfficialDeepSeekProvider(provider)
       ? DEEPSEEK_PROVIDER_PROFILE
-      : CUSTOM_PROVIDER_PROFILE)
+      : isDefaultOllamaProvider(provider)
+        ? OLLAMA_PROVIDER_PROFILE
+        : CUSTOM_PROVIDER_PROFILE)
   };
 }
 
 export function validateProviderDraft(draft) {
-  const provider = {
+  let provider = {
     id: typeof draft?.id === "string" ? draft.id : "",
     name: typeof draft?.name === "string" ? draft.name.trim() : "",
     baseUrl: normalizeBaseUrl(draft?.baseUrl),
@@ -98,6 +140,8 @@ export function validateProviderDraft(draft) {
     jsonMode: Boolean(draft?.jsonMode),
     performanceProfile: resolveProviderProfile(draft)
   };
+
+  provider = migrateLegacyDeepSeekProvider(provider);
 
   if (!provider.name) {
     throw new Error("请输入服务名称。");

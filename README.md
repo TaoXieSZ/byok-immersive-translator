@@ -4,7 +4,7 @@
 
 ## 当前能力
 
-- DeepSeek 预设与自定义 OpenAI-compatible 服务
+- DeepSeek V4 Flash、Ollama 本地模型预设与自定义 OpenAI-compatible 服务
 - 多套本地 Provider 配置、切换、编辑和删除
 - 逐段双语翻译，保留原文和页面原有样式
 - 段落魔法镜：划选词句后点击 A3 小按钮，只翻译所选内容，并按需解释缩写和专有名词
@@ -17,7 +17,7 @@
 
 首版聚焦普通网页文章。PDF、字幕、图片 OCR、输入框与可编辑区域、代码块、跨段落选区和跨设备配置同步不在当前范围内。
 
-## 安装
+## 安装 Chrome 版
 
 1. 在 Chrome 打开 `chrome://extensions/`。
 2. 开启“开发者模式”。
@@ -26,20 +26,53 @@
 
 无需构建，也没有运行时依赖。
 
-## 配置 DeepSeek
+## 构建 Safari 版（macOS）
+
+Safari 版与 Chrome 版直接共享 [extension](./extension/) 下的业务代码，Xcode 工程只负责 macOS App 容器和 Safari Web Extension 打包。
+
+```bash
+npm run safari:build
+```
+
+无签名 Debug App 会生成到 `build/safari/Build/Products/Debug/BYOK Immersive Translator.app`。在 Xcode 中选择开发团队后即可运行、启用和签名；详细步骤见 [Safari 版说明](./platforms/safari/README.md)。最低支持 macOS 13.3 / Safari 16.4。
+
+## 配置 DeepSeek V4 Flash
+
+默认使用官方模型 `deepseek-v4-flash`。它的能力接近 V4 Pro，但价格更低、响应和并发能力更适合网页翻译；扩展会使用非思考模式减少等待时间和不必要的输出 Token。
 
 1. 打开扩展的“设置”。
-2. 选择“新建 DeepSeek”。
-3. 填入 API Token；默认 Base URL 为 `https://api.deepseek.com/v1`。
-4. 保留或修改模型名和目标语言。
-5. 先点“测试连接”，成功后点“保存并使用”。
+2. 首次配置会默认选择 DeepSeek，并自动填好 Base URL、模型和目标语言。
+3. 只需填入 API Token，然后点击“保存并开始使用”。
+
+需要时可以直接选择其他目标语言或模型；Base URL、服务名称和 JSON 兼容选项位于“高级设置”。默认 Base URL 为 `https://api.deepseek.com`。
+
+从旧版本保存的官方 DeepSeek `deepseek-chat` 或 `deepseek-reasoner` 配置会自动迁移到 `deepseek-v4-flash`；自定义 Provider 和其他模型名称不会被改写。
 
 其他服务需要提供 OpenAI-compatible 的 `POST /chat/completions` 接口。Base URL 填到服务的 API 根路径，例如 `https://example.com/v1`。
+
+## 配置 Ollama 本地模型（隐私优先）
+
+Ollama 提供 OpenAI-compatible 接口。模型和推理都在本机运行时，扩展只会把待翻译文字发送到本机回环地址，不会交给第三方翻译服务。
+
+1. 安装并启动 Ollama，再下载一个适合你的本地模型，例如 `ollama pull qwen3:8b`。
+2. 打开扩展“设置”，选择“Ollama”。
+3. 无需填写 API Key；扩展会自动使用兼容占位值 `ollama` 和 Base URL `http://localhost:11434/v1`。
+4. 默认模型为 `qwen3:8b`。如果本机安装的是其他模型，选择或输入它的准确名称。
+5. 点击“保存并开始使用”；需要时可先测试连接。
+
+如果测试提示无法连接，而 Ollama 本身正在运行，请在设置页复制自动显示的 `OLLAMA_ORIGINS` 值，只允许当前 Chrome 或 Safari 扩展来源，然后重启 Ollama。Chrome 版也可以从 `chrome://extensions/` 查看扩展 ID：
+
+```bash
+OLLAMA_ORIGINS=设置页显示的扩展来源 ollama serve
+```
+
+不建议使用通配符允许所有浏览器扩展。以上隐私保证只适用于下载到本机并由本机 Ollama 推理的模型；如果 Ollama 被配置为云模型、代理或远端地址，文字仍会离开设备。
 
 ## 使用
 
 打开一篇网页文章，点击扩展图标，然后选择“开始翻译”。Popup 会显示完成、处理中和失败数量。你可以随时：
 
+- 拖动页面边缘的翻译按钮避开原站控件；松手后会自动吸附到最近边缘并记住位置。键盘聚焦按钮后，也可以按 `Shift + 方向键` 移动；
 - 停止：中止当前请求，保留已经得到的译文；
 - 重试失败：只重新提交失败或被停止的块；
 - 恢复原文：只删除扩展插入的译文，不改动网页原节点。
@@ -68,9 +101,10 @@
 
 ## Token 与隐私边界
 
-- Token 存储在 `chrome.storage.local`，不会写入 `chrome.storage.sync`。
+- Token 存储在浏览器扩展的本地存储区，不会写入同步存储。
 - Content Script 不会收到 Token、Base URL 或完整 Provider 配置。
 - Service Worker 只向当前选中的 Provider origin 发送所选正文块，不发送完整 DOM、Cookie、表单值或页面脚本。
+- 使用 `localhost` / `127.0.0.1` 上的 Ollama 本地模型时，待翻译文字只发送到本机回环地址；云模型、代理和远端 Ollama 不属于这个边界。
 - 点击魔法镜前不发送任何选区数据；点击后只发送规范化选中文字和最多 4000 字符的当前语义段落纯文本上下文。上下文只用于消歧，不会复制到卡片或剪贴板。
 - 选区缓存只保存验证后的译文和不可逆哈希，不保存选区或上下文明文；魔法镜消息不能覆盖 Provider、Base URL、模型、认证头或并发策略。
 - API origin 权限按配置精确申请；删除或改址后会清理不再使用的权限。

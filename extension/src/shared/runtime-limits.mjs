@@ -14,6 +14,13 @@ export const CUSTOM_PROVIDER_PROFILE = Object.freeze({
   maxConcurrency: TRANSLATION_CONCURRENCY
 });
 
+export const OLLAMA_PROVIDER_PROFILE = Object.freeze({
+  stream: true,
+  initialConcurrency: 1,
+  minConcurrency: 1,
+  maxConcurrency: 1
+});
+
 const MAX_PROVIDER_CONCURRENCY = 16;
 const PROFILE_KEYS = new Set([
   "stream",

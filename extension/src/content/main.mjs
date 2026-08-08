@@ -1057,7 +1057,16 @@ export function installContentController() {
     settings: async () => {
       await chrome.runtime.openOptionsPage();
       return { ok: true };
-    }
+    },
+    getFloatingControlPreference: () =>
+      chrome.runtime.sendMessage({
+        type: MessageType.GET_FLOATING_CONTROL_PREFERENCE
+      }),
+    saveFloatingControlPreference: (preference) =>
+      chrome.runtime.sendMessage({
+        type: MessageType.SAVE_FLOATING_CONTROL_PREFERENCE,
+        preference
+      })
   });
   magicLensController = installMagicLensController();
   notifyStatus();

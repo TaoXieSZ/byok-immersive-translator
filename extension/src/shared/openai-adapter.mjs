@@ -1,5 +1,8 @@
 import { ErrorCode } from "./messages.mjs";
-import { getChatCompletionsUrl } from "./provider-config.mjs";
+import {
+  getChatCompletionsUrl,
+  isOfficialDeepSeekProvider
+} from "./provider-config.mjs";
 import {
   FORMAT_RESULT_TYPE,
   validateFormattedTranslationOrFallback
@@ -9,6 +12,17 @@ function stripCodeFence(content) {
   const trimmed = content.trim();
   const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return match ? match[1] : trimmed;
+}
+
+function buildModelOptions(provider) {
+  const options = { model: provider.model };
+  if (
+    isOfficialDeepSeekProvider(provider) &&
+    provider.model === "deepseek-v4-flash"
+  ) {
+    options.thinking = { type: "disabled" };
+  }
+  return options;
 }
 
 export function buildTranslationPrompt(items, targetLanguage) {
@@ -47,7 +61,7 @@ export function buildTranslationPrompt(items, targetLanguage) {
 
 export function buildTranslationRequest(provider, items, targetLanguage) {
   const body = {
-    model: provider.model,
+    ...buildModelOptions(provider),
     messages: [
       {
         role: "system",
@@ -108,7 +122,7 @@ export function buildSingleTranslationRequest(
         Authorization: `Bearer ${provider.apiKey}`
       },
       body: JSON.stringify({
-        model: provider.model,
+        ...buildModelOptions(provider),
         messages: [
           {
             role: "system",
@@ -151,7 +165,7 @@ export function buildSelectionTranslationRequest(
         Authorization: `Bearer ${provider.apiKey}`
       },
       body: JSON.stringify({
-        model: provider.model,
+        ...buildModelOptions(provider),
         messages: [
           {
             role: "system",
@@ -195,7 +209,7 @@ export function buildTermExplanationRequest(
         Authorization: `Bearer ${provider.apiKey}`
       },
       body: JSON.stringify({
-        model: provider.model,
+        ...buildModelOptions(provider),
         messages: [
           {
             role: "system",
